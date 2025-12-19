@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>動作詳情 - FitMotion</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <!-- 導航列 -->
+  <nav class="navbar">
+    <div class="container">
+      <a href="../index.html" class="navbar-brand">💪 FitMotion</a>
+      <ul class="navbar-nav">
+        <li><a href="../index.html" class="nav-link">首頁</a></li>
+        <li><a href="exercise-library.html" class="nav-link active">動作資料庫</a></li>
+        <li><a href="workout-plan.html" class="nav-link">訓練計畫</a></li>
+        <li><a href="training-log.html" class="nav-link">訓練記錄</a></li>
+        <li><a href="statistics.html" class="nav-link">統計分析</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- 主要內容 -->
+  <main class="main-content">
+    <div class="container">
+      <!-- 返回按鈕 -->
+      <a href="exercise-library.html" class="btn btn-outline mb-3">← 返回動作資料庫</a>
+
+      <!-- 載入中 -->
+      <div id="loading" class="text-center" style="padding: 3rem;">
+        <div class="loading" style="margin: 0 auto;"></div>
+        <p style="margin-top: 1rem; color: #666;">載入中...</p>
+      </div>
+
+      <!-- 動作詳情內容 -->
+      <div id="exercise-detail" class="hidden">
+        <!-- 動作標題 -->
+        <div class="card mb-3">
+          <h1 id="exercise-name" class="mb-2">-</h1>
+          <div id="exercise-tags">
+            <!-- 動態生成標籤 -->
+          </div>
+        </div>
+
+        <div class="grid grid-2">
+          <!-- 左側：影片與圖片 -->
+          <div>
+            <!-- YouTube 影片 -->
+            <div class="card mb-3">
+              <div class="card-header">🎬 教學影片</div>
+              <div class="card-body" style="padding: 0;">
+                <div id="video-container" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
+                  <!-- 動態嵌入 YouTube -->
+                </div>
+              </div>
+            </div>
+
+            <!-- 動作提示 -->
+            <div class="card">
+              <div class="card-header">💡 注意事項</div>
+              <div class="card-body">
+                <ul id="tips-list" style="margin: 0; padding-left: 1.5rem;">
+                  <!-- 動態生成 -->
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- 右側：說明與操作 -->
+          <div>
+            <!-- 動作步驟 -->
+            <div class="card mb-3">
+              <div class="card-header">📋 動作步驟</div>
+              <div class="card-body">
+                <ol id="instructions-list" style="margin: 0; padding-left: 1.5rem;">
+                  <!-- 動態生成 -->
+                </ol>
+              </div>
+            </div>
+
+            <!-- 快速操作 -->
+            <div class="card">
+              <div class="card-header">⚡ 快速操作</div>
+              <div class="card-body">
+                <button id="add-to-plan-btn" class="btn btn-primary" style="width: 100%; margin-bottom: 0.5rem;">
+                  ➕ 加入訓練計畫
+                </button>
+                <button id="start-log-btn" class="btn btn-secondary" style="width: 100%;">
+                  📝 開始記錄訓練
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 引入 JavaScript -->
+  <script src="../js/api.js"></script>
+  <script>
+    let currentExercise = null;
+
+    // 頁面載入完成後執行
+    document.addEventListener('DOMContentLoaded', async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const exerciseId = urlParams.get('id');
+      
+      if (!exerciseId) {
+        alert('找不到動作 ID！');
+        window.location.href = 'exercise-library.html';
+        return;
+      }
+      
+      await loadExerciseDetail(exerciseId);
+    });
+
+    // 載入動作詳情
+    async function loadExerciseDetail(exerciseId) {
+      try {
+        currentExercise = await fetchExerciseById(exerciseId);
+        
+        if (!currentExercise) {
+          alert('找不到該動作！');
+          window.location.href = 'exercise-library.html';
+          return;
+        }
+        
+        renderExerciseDetail(currentExercise);
+        
+        // 隱藏載入中，顯示內容
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('exercise-detail').classList.remove('hidden');
+        
+      } catch (error) {
+        console.error('載入失敗:', error);
+        alert('載入動作詳情失敗！');
+        window.location.href = 'exercise-library.html';
+      }
+    }
+
+    // 渲染動作詳情
+    function renderExerciseDetail(exercise) {
+      // 標題
+      document.getElementById('exercise-name').textContent = exercise.name;
+      document.title = `${exercise.name} - FitMotion`;
+      
+      // 標籤
+      const tagsContainer = document.getElementById('exercise-tags');
+      tagsContainer.innerHTML = `
+        <span class="tag tag-primary">${exercise.targetMuscle}</span>
+        <span class="tag tag-warning">${exercise.difficulty}</span>
+        <span class="tag tag-info">${exercise.equipment}</span>
+      `;
+      
+      // YouTube 影片
+      if (exercise.videoUrl) {
+        const videoId = extractYouTubeId(exercise.videoUrl);
+        if (videoId) {
+          document.getElementById('video-container').innerHTML = `
+            <iframe 
+              style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+              src="https://www.youtube.com/embed/${videoId}" 
+              frameborder="0" 
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+              allowfullscreen>
+            </iframe>
+          `;
+        }
+      } else {
+        document.getElementById('video-container').innerHTML = `
+          <div style="padding: 3rem; text-align: center; color: #999;">
+            <p>暫無教學影片</p>
+          </div>
+        `;
+      }
+      
+      // 動作步驟
+      const instructionsList = document.getElementById('instructions-list');
+      if (exercise.instructions && exercise.instructions.length > 0) {
+        instructionsList.innerHTML = exercise.instructions
+          .map(instruction => `<li style="margin-bottom: 0.5rem;">${instruction}</li>`)
+          .join('');
+      } else {
+        instructionsList.innerHTML = '<li>暫無詳細步驟</li>';
+      }
+      
+      // 注意事項
+      const tipsList = document.getElementById('tips-list');
+      if (exercise.tips && exercise.tips.length > 0) {
+        tipsList.innerHTML = exercise.tips
+          .map(tip => `<li style="margin-bottom: 0.5rem;">${tip}</li>`)
+          .join('');
+      } else {
+        tipsList.innerHTML = '<li>暫無注意事項</li>';
+      }
+      
+      // 設定按鈕事件
+      setupButtons(exercise);
+    }
+
+    // 從 YouTube URL 提取 video ID
+    function extractYouTubeId(url) {
+      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+      const match = url.match(regExp);
+      return (match && match[2].length === 11) ? match[2] : null;
+    }
+
+    // 設定按鈕功能
+    function setupButtons(exercise) {
+      // 加入訓練計畫按鈕
+      document.getElementById('add-to-plan-btn').addEventListener('click', async () => {
+        const day = prompt('請輸入要加入的日期 (monday/tuesday/wednesday/thursday/friday/saturday/sunday):', 'monday');
+        
+        if (!day) return;
+        
+        const validDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+        if (!validDays.includes(day.toLowerCase())) {
+          alert('無效的日期！請輸入英文星期（如：monday）');
+          return;
+        }
+        
+        const result = await addExerciseToPlan(exercise._id, day.toLowerCase());
+        
+        if (result) {
+          const goToPlan = confirm(`${exercise.name} 已加入計畫！要前往查看嗎？`);
+          if (goToPlan) {
+            window.location.href = 'workout-plan.html';
+          }
+        }
+      });
+      
+      // 開始記錄訓練按鈕
+      document.getElementById('start-log-btn').addEventListener('click', () => {
+        window.location.href = `training-log.html?exerciseId=${exercise._id}`;
+      });
+    }
+  </script>
+
+  <style>
+    #exercise-detail.hidden {
+      display: none;
+    }
+    
+    #loading.hidden {
+      display: none;
+    }
+  </style>
+</body>
+</html>

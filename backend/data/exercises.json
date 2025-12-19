@@ -1,0 +1,222 @@
+[
+  {
+    "name": "槓鈴臥推",
+    "targetMuscle": "胸肌",
+    "equipment": "槓鈴",
+    "difficulty": "中級",
+    "videoUrl": "https://www.youtube.com/watch?v=rT7DgCr-3pg",
+    "imageUrl": "https://via.placeholder.com/300x200?text=Barbell+Bench+Press",
+    "instructions": [
+      "躺在臥推椅上，雙腳平放地面",
+      "握住槓鈴，手距略寬於肩膀",
+      "將槓鈴從架上取下，保持手臂伸直",
+      "慢慢下降至胸部，手肘約呈45度角",
+      "用力推起槓鈴回到起始位置"
+    ],
+    "tips": [
+      "保持肩胛骨收緊",
+      "下降時吸氣，推起時吐氣",
+      "不要讓槓鈴彈跳於胸部"
+    ]
+  },
+  {
+    "name": "啞鈴臥推",
+    "targetMuscle": "胸肌",
+    "equipment": "啞鈴",
+    "difficulty": "初級",
+    "videoUrl": "https://www.youtube.com/watch?v=VmB1G1K7v94",
+    "imageUrl": "https://via.placeholder.com/300x200?text=Dumbbell+Bench+Press",
+    "instructions": [
+      "雙手各持一個啞鈴，躺在臥推椅上",
+      "將啞鈴舉至胸部上方，手臂伸直",
+      "慢慢下降啞鈴至胸部兩側",
+      "用力推起啞鈴回到起始位置"
+    ],
+    "tips": [
+      "保持核心穩定",
+      "動作過程中控制速度"
+    ]
+  },
+  {
+    "name": "引體向上",
+    "targetMuscle": "背肌",
+    "equipment": "徒手",
+    "difficulty": "中級",
+    "videoUrl": "https://www.youtube.com/watch?v=eGo4IYlbE5g",
+    "imageUrl": "https://via.placeholder.com/300x200?text=Pull+Up",
+    "instructions": [
+      "雙手握住單槓，手距略寬於肩膀",
+      "懸掛於單槓下方，手臂完全伸直",
+      "用背部力量將身體拉起，直到下巴超過單槓",
+      "慢慢下降回到起始位置"
+    ],
+    "tips": [
+      "避免擺盪身體",
+      "專注使用背部肌肉發力"
+    ]
+  },
+  {
+    "name": "槓鈴划船",
+    "targetMuscle": "背肌",
+    "equipment": "槓鈴",
+    "difficulty": "中級",
+    "videoUrl": "https://www.youtube.com/watch?v=FWJR5Ve8bnQ",
+    "imageUrl": "https://via.placeholder.com/300x200?text=Barbell+Row",
+    "instructions": [
+      "雙腳與肩同寬，膝蓋微彎",
+      "彎腰前傾，保持背部平直",
+      "握住槓鈴，手臂自然下垂",
+      "將槓鈴拉向腹部，收緊肩胛骨",
+      "慢慢放下槓鈴回到起始位置"
+    ],
+    "tips": [
+      "保持核心穩定",
+      "避免用手臂發力"
+    ]
+  },
+  {
+    "name": "深蹲",
+    "targetMuscle": "腿部",
+    "equipment": "槓鈴",
+    "difficulty": "中級",
+    "videoUrl": "https://www.youtube.com/watch?v=ultWZbUMPL8",
+    "imageUrl": "https://via.placeholder.com/300x200?text=Squat",
+    "instructions": [
+      "雙腳與肩同寬，腳尖微微朝外",
+      "將槓鈴放在肩膀後方",
+      "保持背部挺直，慢慢下蹲",
+      "下蹲至大腿與地面平行",
+      "用腿部力量站起回到起始位置"
+    ],
+    "tips": [
+      "膝蓋不要超過腳尖",
+      "保持核心穩定",
+      "下蹲時吸氣，站起時吐氣"
+    ]
+  },
+  {
+    "name": "硬舉",
+    "targetMuscle": "腿部",
+    "equipment": "槓鈴",
+    "difficulty": "高級",
+    "videoUrl": "https://www.youtube.com/watch?v=op9kVnSso6Q",
+    "imageUrl": "https://via.placeholder.com/300x200?text=Deadlift",
+    "instructions": [
+      "雙腳與肩同寬站立，槓鈴放在腳前",
+      "彎腰握住槓鈴，背部保持平直",
+      "用腿部和背部力量將槓鈴拉起",
+      "站直後慢慢放下槓鈴"
+    ],
+    "tips": [
+      "保持背部中立，避免圓背",
+      "動作全程核心收緊"
+    ]
+  },
+  {
+    "name": "肩推",
+    "targetMuscle": "肩膀",
+    "equipment": "啞鈴",
+    "difficulty": "初級",
+    "videoUrl": "https://www.youtube.com/watch?v=qEwKCR5JCog",
+    "imageUrl": "https://via.placeholder.com/300x200?text=Shoulder+Press",
+    "instructions": [
+      "坐在椅子上，背部挺直",
+      "雙手各持一個啞鈴於肩膀高度",
+      "將啞鈴向上推至手臂伸直",
+      "慢慢下降回到起始位置"
+    ],
+    "tips": [
+      "避免用腰部借力",
+      "保持核心穩定"
+    ]
+  },
+  {
+    "name": "側平舉",
+    "targetMuscle": "肩膀",
+    "equipment": "啞鈴",
+    "difficulty": "初級",
+    "videoUrl": "https://www.youtube.com/watch?v=3VcKaXpzqRo",
+    "imageUrl": "https://via.placeholder.com/300x200?text=Lateral+Raise",
+    "instructions": [
+      "雙腳與肩同寬站立",
+      "雙手各持一個啞鈴於身體兩側",
+      "將啞鈴向兩側平舉至肩膀高度",
+      "慢慢放下回到起始位置"
+    ],
+    "tips": [
+      "手肘微彎",
+      "避免聳肩"
+    ]
+  },
+  {
+    "name": "二頭彎舉",
+    "targetMuscle": "手臂",
+    "equipment": "啞鈴",
+    "difficulty": "初級",
+    "videoUrl": "https://www.youtube.com/watch?v=ykJmrZ5v0Oo",
+    "imageUrl": "https://via.placeholder.com/300x200?text=Bicep+Curl",
+    "instructions": [
+      "雙腳與肩同寬站立",
+      "雙手各持一個啞鈴於身體兩側",
+      "將啞鈴向上彎舉至肩膀高度",
+      "慢慢放下回到起始位置"
+    ],
+    "tips": [
+      "手肘固定不動",
+      "避免身體擺盪"
+    ]
+  },
+  {
+    "name": "三頭下壓",
+    "targetMuscle": "手臂",
+    "equipment": "機械",
+    "difficulty": "初級",
+    "videoUrl": "https://www.youtube.com/watch?v=2-LAMcpzODU",
+    "imageUrl": "https://via.placeholder.com/300x200?text=Tricep+Pushdown",
+    "instructions": [
+      "站在繩索機前",
+      "握住把手，手肘固定於身體兩側",
+      "將把手向下壓至手臂伸直",
+      "慢慢回到起始位置"
+    ],
+    "tips": [
+      "手肘保持固定",
+      "專注使用三頭肌發力"
+    ]
+  },
+  {
+    "name": "捲腹",
+    "targetMuscle": "核心",
+    "equipment": "徒手",
+    "difficulty": "初級",
+    "videoUrl": "https://www.youtube.com/watch?v=Xyd_fa5zoEU",
+    "imageUrl": "https://via.placeholder.com/300x200?text=Crunch",
+    "instructions": [
+      "躺在地上，雙腳屈膝",
+      "雙手放在頭後或胸前",
+      "用腹部力量將上半身捲起",
+      "慢慢放下回到起始位置"
+    ],
+    "tips": [
+      "避免拉扯頸部",
+      "專注使用腹部肌肉"
+    ]
+  },
+  {
+    "name": "棒式",
+    "targetMuscle": "核心",
+    "equipment": "徒手",
+    "difficulty": "初級",
+    "videoUrl": "https://www.youtube.com/watch?v=ASdvN_XEl_c",
+    "imageUrl": "https://via.placeholder.com/300x200?text=Plank",
+    "instructions": [
+      "以前臂和腳尖支撐身體",
+      "保持身體呈一直線",
+      "維持此姿勢30-60秒"
+    ],
+    "tips": [
+      "避免臀部下垂或拱起",
+      "保持呼吸順暢"
+    ]
+  }
+]

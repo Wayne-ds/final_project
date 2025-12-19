@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>統計分析 - FitMotion</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <!-- 載入 Google Charts -->
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+</head>
+<body>
+  <!-- 導航列 -->
+  <nav class="navbar">
+    <div class="container">
+      <a href="../index.html" class="navbar-brand">💪 FitMotion</a>
+      <ul class="navbar-nav">
+        <li><a href="../index.html" class="nav-link">首頁</a></li>
+        <li><a href="exercise-library.html" class="nav-link">動作資料庫</a></li>
+        <li><a href="workout-plan.html" class="nav-link">訓練計畫</a></li>
+        <li><a href="training-log.html" class="nav-link">訓練記錄</a></li>
+        <li><a href="statistics.html" class="nav-link active">統計分析</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- 主要內容 -->
+  <main class="main-content">
+    <div class="container">
+      <h1 class="mb-3">📊 統計分析</h1>
+
+      <!-- 統計卡片 -->
+      <div class="grid grid-4 mb-4">
+        <div class="card text-center">
+          <div style="font-size: 2.5rem; color: var(--primary-color);" id="total-logs">0</div>
+          <div style="color: #666; margin-top: 0.5rem;">總訓練次數</div>
+        </div>
+        <div class="card text-center">
+          <div style="font-size: 2.5rem; color: var(--secondary-color);" id="total-exercises">0</div>
+          <div style="color: #666; margin-top: 0.5rem;">訓練動作數</div>
+        </div>
+        <div class="card text-center">
+          <div style="font-size: 2.5rem; color: var(--accent-color);" id="this-month">0</div>
+          <div style="color: #666; margin-top: 0.5rem;">本月訓練天數</div>
+        </div>
+        <div class="card text-center">
+          <div style="font-size: 2.5rem; color: var(--success-color);" id="streak-days">0</div>
+          <div style="color: #666; margin-top: 0.5rem;">連續訓練天數</div>
+        </div>
+      </div>
+
+      <!-- 圖表區域 -->
+      <div class="grid grid-2 mb-4">
+        <!-- 部位訓練分布圓餅圖 -->
+        <div class="card">
+          <div class="card-header">🎯 各部位訓練分布</div>
+          <div class="card-body">
+            <div id="muscle-chart" style="width: 100%; height: 400px;">
+              <p class="text-center" style="padding: 3rem; color: #999;">載入中...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 訓練頻率長條圖 -->
+        <div class="card">
+          <div class="card-header">📅 每月訓練頻率</div>
+          <div class="card-body">
+            <div id="frequency-chart" style="width: 100%; height: 400px;">
+              <p class="text-center" style="padding: 3rem; color: #999;">載入中...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 重量進步曲線 -->
+      <div class="card mb-4">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+          <span>📈 重量進步曲線</span>
+          <select id="exercise-selector" class="form-select" style="width: auto; display: inline-block;">
+            <option value="">-- 選擇動作 --</option>
+          </select>
+        </div>
+        <div class="card-body">
+          <div id="progress-chart" style="width: 100%; height: 400px;">
+            <p class="text-center" style="padding: 3rem; color: #999;">請選擇動作查看進步曲線</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 詳細記錄表格 -->
+      <div class="card">
+        <div class="card-header">📋 最近 10 筆訓練記錄</div>
+        <div class="card-body">
+          <div id="recent-logs-table" style="overflow-x: auto;">
+            <!-- 動態生成表格 -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 引入 JavaScript -->
+  <script src="../js/api.js"></script>
+  <script>
+    let allLogs = [];
+    let allExercises = [];
+
+    // 載入 Google Charts
+    google.charts.load('current', {'packages':['corechart']});
+    google.charts.setOnLoadCallback(initPage);
+
+    // 初始化頁面
+    async function initPage() {
+      await loadData();
+      updateStatistics();
+      drawMuscleChart();
+      drawFrequencyChart();
+      setupExerciseSelector();
+      renderRecentLogsTable();
+    }
+
+    // 載入資料
+    async function loadData() {
+      allLogs = await fetchAllLogs();
+      allExercises = await fetchExercises();
+    }
+
+    // 更新統計數字
+    function updateStatistics() {
+      // 總訓練次數
+      document.getElementById('total-logs').textContent = allLogs.length;
+
+      // 訓練動作數（去重）
+      const uniqueExercises = new Set(
+        allLogs
+          .filter(log => log.exerciseId)
+          .map(log => log.exerciseId._id)
+      );
+      document.getElementById('total-exercises').textContent = uniqueExercises.size;
+
+      // 本月訓練天數
+      const now = new Date();
+      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const thisMonthLogs = allLogs.filter(log => new Date(log.date) >= firstDayOfMonth);
+      const uniqueDaysThisMonth = new Set(
+        thisMonthLogs.map(log => new Date(log.date).toDateString())
+      );
+      document.getElementById('this-month').textContent = uniqueDaysThisMonth.size;
+
+      // 連續訓練天數
+      const streak = calculateStreak();
+      document.getElementById('streak-days').textContent = streak;
+    }
+
+    // 計算連續訓練天數
+    function calculateStreak() {
+      if (allLogs.length === 0) return 0;
+
+      const uniqueDates = [...new Set(
+        allLogs.map(log => new Date(log.date).toDateString())
+      )].sort((a, b) => new Date(b) - new Date(a));
+
+      let streak = 0;
+      const today = new Date().toDateString();
+      
+      for (let i = 0; i < uniqueDates.length; i++) {
+        const checkDate = new Date();
+        checkDate.setDate(checkDate.getDate() - i);
+        
+        if (uniqueDates[i] === checkDate.toDateString()) {
+          streak++;
+        } else {
+          break;
+        }
+      }
+
+      return streak;
+    }
+
+    // 繪製部位訓練分布圓餅圖
+    function drawMuscleChart() {
+      if (allLogs.length === 0) {
+        document.getElementById('muscle-chart').innerHTML = 
+          '<p class="text-center" style="padding: 3rem; color: #999;">還沒有訓練記錄</p>';
+        return;
+      }
+
+      // 統計各部位訓練次數
+      const muscleCount = {};
+      allLogs.forEach(log => {
+        if (log.exerciseId && log.exerciseId.targetMuscle) {
+          const muscle = log.exerciseId.targetMuscle;
+          muscleCount[muscle] = (muscleCount[muscle] || 0) + 1;
+        }
+      });
+
+      // 準備圖表資料
+      const chartData = [['部位', '訓練次數']];
+      Object.entries(muscleCount).forEach(([muscle, count]) => {
+        chartData.push([muscle, count]);
+      });
+
+      const data = google.visualization.arrayToDataTable(chartData);
+
+      const options = {
+        title: '各部位訓練分布',
+        pieHole: 0.4,
+        colors: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F'],
+        legend: { position: 'bottom' },
+        chartArea: { width: '90%', height: '70%' },
+        pieSliceText: 'percentage',
+        tooltip: { text: 'both' }
+      };
+
+      const chart = new google.visualization.PieChart(
+        document.getElementById('muscle-chart')
+      );
+      chart.draw(data, options);
+    }
+
+    // 繪製訓練頻率長條圖
+    function drawFrequencyChart() {
+      if (allLogs.length === 0) {
+        document.getElementById('frequency-chart').innerHTML = 
+          '<p class="text-center" style="padding: 3rem; color: #999;">還沒有訓練記錄</p>';
+        return;
+      }
+
+      // 統計每月訓練天數（最近6個月）
+      const monthlyDays = {};
+      const uniqueDatesByMonth = {};
+
+      allLogs.forEach(log => {
+        const date = new Date(log.date);
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        const dateKey = date.toDateString();
+
+        if (!uniqueDatesByMonth[monthKey]) {
+          uniqueDatesByMonth[monthKey] = new Set();
+        }
+        uniqueDatesByMonth[monthKey].add(dateKey);
+      });
+
+      Object.entries(uniqueDatesByMonth).forEach(([month, dates]) => {
+        monthlyDays[month] = dates.size;
+      });
+
+      // 取最近6個月
+      const sortedMonths = Object.keys(monthlyDays).sort().slice(-6);
+      
+      const chartData = [['月份', '訓練天數', { role: 'style' }]];
+      sortedMonths.forEach(month => {
+        const days = monthlyDays[month];
+        const color = days >= 15 ? '#4ECDC4' : '#FF6B6B';
+        chartData.push([month, days, color]);
+      });
+
+      const data = google.visualization.arrayToDataTable(chartData);
+
+      const options = {
+        title: '每月訓練頻率',
+        vAxis: {
+          title: '訓練天數',
+          minValue: 0,
+          gridlines: { color: '#f0f0f0' }
+        },
+        hAxis: {
+          title: '月份'
+        },
+        legend: { position: 'none' },
+        chartArea: { width: '80%', height: '70%' },
+        bar: { groupWidth: '70%' }
+      };
+
+      const chart = new google.visualization.ColumnChart(
+        document.getElementById('frequency-chart')
+      );
+      chart.draw(data, options);
+    }
+
+    // 設定動作選擇器
+    function setupExerciseSelector() {
+      const selector = document.getElementById('exercise-selector');
+      
+      // 取得有訓練記錄的動作
+      const exercisesWithLogs = new Set(
+        allLogs
+          .filter(log => log.exerciseId)
+          .map(log => log.exerciseId._id)
+      );
+
+      allExercises
+        .filter(ex => exercisesWithLogs.has(ex._id))
+        .forEach(exercise => {
+          const option = document.createElement('option');
+          option.value = exercise._id;
+          option.textContent = exercise.name;
+          selector.appendChild(option);
+        });
+
+      selector.addEventListener('change', (e) => {
+        if (e.target.value) {
+          drawProgressChart(e.target.value);
+        } else {
+          document.getElementById('progress-chart').innerHTML = 
+            '<p class="text-center" style="padding: 3rem; color: #999;">請選擇動作查看進步曲線</p>';
+        }
+      });
+    }
+
+    // 繪製重量進步曲線
+    function drawProgressChart(exerciseId) {
+      const exerciseLogs = allLogs
+        .filter(log => log.exerciseId && log.exerciseId._id === exerciseId)
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      if (exerciseLogs.length === 0) {
+        document.getElementById('progress-chart').innerHTML = 
+          '<p class="text-center" style="padding: 3rem; color: #999;">該動作還沒有訓練記錄</p>';
+        return;
+      }
+
+      const data = new google.visualization.DataTable();
+      data.addColumn('date', '日期');
+      data.addColumn('number', '重量 (kg)');
+      data.addColumn({ type: 'string', role: 'tooltip' });
+
+      exerciseLogs.forEach(log => {
+        const date = new Date(log.date);
+        const tooltip = `${date.toLocaleDateString('zh-TW')}\n重量: ${log.weight}kg\n${log.sets}組 × ${log.reps}次`;
+        data.addRow([date, log.weight, tooltip]);
+      });
+
+      const options = {
+        title: `${exerciseLogs[0].exerciseId.name} - 重量進步曲線`,
+        curveType: 'function',
+        legend: { position: 'bottom' },
+        hAxis: {
+          title: '日期',
+          format: 'MM/dd',
+          gridlines: { color: '#f0f0f0' }
+        },
+        vAxis: {
+          title: '重量 (kg)',
+          minValue: 0,
+          gridlines: { color: '#f0f0f0' }
+        },
+        colors: ['#FF6B6B'],
+        pointSize: 6,
+        lineWidth: 3,
+        chartArea: { width: '85%', height: '70%' },
+        trendlines: { 
+          0: { 
+            type: 'linear',
+            color: '#4ECDC4',
+            lineWidth: 2,
+            opacity: 0.5,
+            showR2: true,
+            visibleInLegend: true
+          } 
+        }
+      };
+
+      const chart = new google.visualization.LineChart(
+        document.getElementById('progress-chart')
+      );
+      chart.draw(data, options);
+    }
+
+    // 渲染最近記錄表格
+    function renderRecentLogsTable() {
+      const container = document.getElementById('recent-logs-table');
+      
+      if (allLogs.length === 0) {
+        container.innerHTML = '<p class="text-center" style="padding: 2rem; color: #999;">還沒有訓練記錄</p>';
+        return;
+      }
+
+      const recentLogs = allLogs.slice(0, 10);
+
+      let tableHTML = `
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="background: #f8f9fa; text-align: left;">
+              <th style="padding: 0.75rem; border-bottom: 2px solid #dee2e6;">日期</th>
+              <th style="padding: 0.75rem; border-bottom: 2px solid #dee2e6;">動作</th>
+              <th style="padding: 0.75rem; border-bottom: 2px solid #dee2e6;">部位</th>
+              <th style="padding: 0.75rem; border-bottom: 2px solid #dee2e6;">重量</th>
+              <th style="padding: 0.75rem; border-bottom: 2px solid #dee2e6;">組數×次數</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      recentLogs.forEach(log => {
+        const date = new Date(log.date).toLocaleDateString('zh-TW');
+        const exercise = log.exerciseId ? log.exerciseId.name : '未知';
+        const muscle = log.exerciseId ? log.exerciseId.targetMuscle : '-';
+        
+        tableHTML += `
+          <tr style="border-bottom: 1px solid #dee2e6;">
+            <td style="padding: 0.75rem;">${date}</td>
+            <td style="padding: 0.75rem; font-weight: bold;">${exercise}</td>
+            <td style="padding: 0.75rem;"><span class="tag tag-primary">${muscle}</span></td>
+            <td style="padding: 0.75rem;">${log.weight} kg</td>
+            <td style="padding: 0.75rem;">${log.sets} × ${log.reps}</td>
+          </tr>
+        `;
+      });
+
+      tableHTML += '</tbody></table>';
+      container.innerHTML = tableHTML;
+    }
+  </script>
+</body>
+</html>

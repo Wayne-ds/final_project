@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>動作資料庫 - FitMotion</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <a href="../index.html" class="navbar-brand">💪 FitMotion</a>
+      <ul class="navbar-nav">
+        <li><a href="../index.html" class="nav-link">首頁</a></li>
+        <li><a href="exercise-library.html" class="nav-link active">動作資料庫</a></li>
+        <li><a href="workout-plan.html" class="nav-link">訓練計畫</a></li>
+        <li><a href="training-log.html" class="nav-link">訓練記錄</a></li>
+        <li><a href="statistics.html" class="nav-link">統計分析</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="container">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h1>📚 動作資料庫</h1>
+        <a href="custom-exercise.html" class="btn btn-primary">➕ 新增自訂動作</a>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-body">
+          <div class="form-group">
+            <input type="text" id="search-input" class="form-input" placeholder="🔍 搜尋動作名稱...">
+          </div>
+
+          <div class="grid grid-3">
+            <div>
+              <label class="form-label">目標部位</label>
+              <div id="muscle-filters" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                <button class="tag tag-primary filter-btn" data-type="muscle" data-value="胸肌">胸肌</button>
+                <button class="tag tag-primary filter-btn" data-type="muscle" data-value="背肌">背肌</button>
+                <button class="tag tag-primary filter-btn" data-type="muscle" data-value="腿部">腿部</button>
+                <button class="tag tag-primary filter-btn" data-type="muscle" data-value="肩膀">肩膀</button>
+                <button class="tag tag-primary filter-btn" data-type="muscle" data-value="手臂">手臂</button>
+                <button class="tag tag-primary filter-btn" data-type="muscle" data-value="核心">核心</button>
+              </div>
+            </div>
+
+            <div>
+              <label class="form-label">難度等級</label>
+              <div id="difficulty-filters" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                <button class="tag tag-success filter-btn" data-type="difficulty" data-value="初級">初級</button>
+                <button class="tag tag-warning filter-btn" data-type="difficulty" data-value="中級">中級</button>
+                <button class="tag tag-secondary filter-btn" data-type="difficulty" data-value="高級">高級</button>
+              </div>
+            </div>
+
+            <div>
+              <label class="form-label">使用器材</label>
+              <div id="equipment-filters" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                <button class="tag tag-info filter-btn" data-type="equipment" data-value="啞鈴">啞鈴</button>
+                <button class="tag tag-info filter-btn" data-type="equipment" data-value="槓鈴">槓鈴</button>
+                <button class="tag tag-info filter-btn" data-type="equipment" data-value="機械">機械</button>
+                <button class="tag tag-info filter-btn" data-type="equipment" data-value="徒手">徒手</button>
+                <button class="tag tag-info filter-btn" data-type="equipment" data-value="彈力帶">彈力帶</button>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 1rem; text-align: center; color: #666;">
+            <span id="result-count">找到 0 個動作</span>
+            <button id="clear-filters" class="btn btn-outline" style="margin-left: 1rem;">清除篩選</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="exercises-grid" class="grid grid-3"></div>
+    </div>
+  </main>
+
+  <script src="../js/api.js"></script>
+  <script>
+    let allExercises = [];
+    let selectedFilters = { muscle: [], difficulty: [], equipment: [] };
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadExercises();
+      setupEventListeners();
+    });
+
+    async function loadExercises() {
+      allExercises = await fetchExercises();
+      renderExercises(allExercises);
+    }
+
+    function renderExercises(exercises) {
+      const grid = document.getElementById('exercises-grid');
+      
+      if (exercises.length === 0) {
+        grid.innerHTML = `
+          <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: #999;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">😕</div>
+            <p>找不到符合條件的動作</p>
+          </div>
+        `;
+        document.getElementById('result-count').textContent = '找到 0 個動作';
+        return;
+      }
+
+      grid.innerHTML = '';
+      
+      exercises.forEach(exercise => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.style.cursor = 'pointer';
+        
+        const customBadge = exercise.isCustom ? '<span class="tag tag-success" style="margin-left: 0.5rem;">自訂</span>' : '';
+        
+        card.innerHTML = `
+          <img src="${exercise.imageUrl}" alt="${exercise.name}" 
+               style="width: 100%; height: 180px; object-fit: cover; border-radius: var(--radius-md); margin-bottom: 1rem;">
+          <h3 style="margin-bottom: 0.5rem;">${exercise.name}${customBadge}</h3>
+          <div style="margin-bottom: 1rem;">
+            <span class="tag tag-primary">${exercise.targetMuscle}</span>
+            <span class="tag tag-warning">${exercise.difficulty}</span>
+            <span class="tag tag-info">${exercise.equipment}</span>
+          </div>
+          <p style="color: #666; font-size: 0.9rem; margin-bottom: 1rem;">
+            ${exercise.instructions[0] || '暫無說明'}
+          </p>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-primary" style="flex: 1;" onclick="viewDetails('${exercise._id}')">
+              查看詳情
+            </button>
+            ${exercise.isCustom ? `
+              <button class="btn btn-danger" onclick="deleteExercise('${exercise._id}', '${exercise.name}')" style="padding: 0.5rem;">
+                刪除
+              </button>
+            ` : `
+              <button class="btn btn-outline" onclick="addToPlan('${exercise._id}', '${exercise.name}')">
+                加入計畫
+              </button>
+            `}
+          </div>
+        `;
+        
+        grid.appendChild(card);
+      });
+
+      document.getElementById('result-count').textContent = `找到 ${exercises.length} 個動作`;
+    }
+
+    function setupEventListeners() {
+      document.getElementById('search-input').addEventListener('input', filterExercises);
+
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const type = btn.dataset.type;
+          const value = btn.dataset.value;
+          
+          btn.classList.toggle('active');
+          
+          if (btn.classList.contains('active')) {
+            if (!selectedFilters[type].includes(value)) {
+              selectedFilters[type].push(value);
+            }
+            btn.style.opacity = '1';
+            btn.style.fontWeight = 'bold';
+          } else {
+            selectedFilters[type] = selectedFilters[type].filter(v => v !== value);
+            btn.style.opacity = '0.6';
+            btn.style.fontWeight = 'normal';
+          }
+          
+          filterExercises();
+        });
+      });
+
+      document.getElementById('clear-filters').addEventListener('click', () => {
+        selectedFilters = { muscle: [], difficulty: [], equipment: [] };
+        
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+          btn.classList.remove('active');
+          btn.style.opacity = '0.6';
+          btn.style.fontWeight = 'normal';
+        });
+        
+        document.getElementById('search-input').value = '';
+        filterExercises();
+      });
+    }
+
+    function filterExercises() {
+      const keyword = document.getElementById('search-input').value.toLowerCase();
+      
+      const filtered = allExercises.filter(exercise => {
+        const matchKeyword = keyword === '' || exercise.name.toLowerCase().includes(keyword);
+        const matchMuscle = selectedFilters.muscle.length === 0 || selectedFilters.muscle.includes(exercise.targetMuscle);
+        const matchDifficulty = selectedFilters.difficulty.length === 0 || selectedFilters.difficulty.includes(exercise.difficulty);
+        const matchEquipment = selectedFilters.equipment.length === 0 || selectedFilters.equipment.includes(exercise.equipment);
+        
+        return matchKeyword && matchMuscle && matchDifficulty && matchEquipment;
+      });
+      
+      renderExercises(filtered);
+    }
+
+    function viewDetails(exerciseId) {
+      window.location.href = `exercise-detail.html?id=${exerciseId}`;
+    }
+
+    async function addToPlan(exerciseId, exerciseName) {
+      const day = prompt('請輸入要加入的日期 (monday/tuesday/wednesday/thursday/friday/saturday/sunday):', 'monday');
+      
+      if (!day) return;
+      
+      const validDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+      if (!validDays.includes(day.toLowerCase())) {
+        alert('無效的日期！');
+        return;
+      }
+      
+      const result = await addExerciseToPlan(exerciseId, day.toLowerCase());
+      
+      if (result) {
+        const goToPlan = confirm(`${exerciseName} 已加入計畫！要前往查看嗎？`);
+        if (goToPlan) {
+          window.location.href = 'workout-plan.html';
+        }
+      }
+    }
+
+    async function deleteExercise(exerciseId, exerciseName) {
+      const confirmDelete = confirm(`確定要刪除自訂動作「${exerciseName}」嗎？`);
+      if (!confirmDelete) return;
+      
+      const result = await deleteCustomExercise(exerciseId);
+      if (result) {
+        await loadExercises();
+      }
+    }
+  </script>
+
+  <style>
+    .filter-btn {
+      cursor: pointer;
+      border: none;
+      transition: all 0.3s ease;
+      opacity: 0.6;
+    }
+
+    .filter-btn:hover {
+      transform: translateY(-2px);
+      opacity: 1;
+    }
+
+    .filter-btn.active {
+      opacity: 1;
+      font-weight: bold;
+      box-shadow: var(--shadow-md);
+    }
+  </style>
+</body>
+</html>

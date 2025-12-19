@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>計畫編輯器 - FitMotion</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <!-- 導航列 -->
+  <nav class="navbar">
+    <div class="container">
+      <a href="../index.html" class="navbar-brand">💪 FitMotion</a>
+      <ul class="navbar-nav">
+        <li><a href="../index.html" class="nav-link">首頁</a></li>
+        <li><a href="exercise-library.html" class="nav-link">動作資料庫</a></li>
+        <li><a href="workout-plan.html" class="nav-link active">訓練計畫</a></li>
+        <li><a href="training-log.html" class="nav-link">訓練記錄</a></li>
+        <li><a href="statistics.html" class="nav-link">統計分析</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- 主要內容 -->
+  <main class="main-content">
+    <div class="container">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1>✏️ 計畫編輯器</h1>
+        <div style="display: flex; gap: 0.5rem;">
+          <a href="workout-plan.html" class="btn btn-outline">← 返回</a>
+          <button id="save-plan-btn" class="btn btn-success">💾 儲存計畫</button>
+        </div>
+      </div>
+
+      <!-- 說明 -->
+      <div class="card mb-3" style="background: #e3f7f6; border-left: 4px solid var(--primary-color);">
+        <p style="margin: 0; color: #2c3e50;">
+          💡 <strong>使用說明：</strong>將左側動作卡片拖曳到右側對應的日期框中，即可加入訓練計畫
+        </p>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 1.5rem;">
+        <!-- 左側：動作清單 -->
+        <div>
+          <div class="card">
+            <div class="card-header">📚 動作清單</div>
+            <div class="card-body">
+              <!-- 搜尋框 -->
+              <input 
+                type="text" 
+                id="search-exercises" 
+                class="form-input mb-2" 
+                placeholder="🔍 搜尋動作..."
+              >
+              
+              <!-- 動作卡片 -->
+              <div id="exercise-list" style="max-height: 600px; overflow-y: auto;">
+                <!-- 動態生成可拖曳的動作卡片 -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 右側：每週計畫編輯區 -->
+        <div>
+          <div id="weekly-editor">
+            <!-- 週一 -->
+            <div class="day-card mb-2">
+              <div class="day-header" style="background-color: #4ECDC4;">
+                📅 星期一 (Monday)
+              </div>
+              <div class="day-dropzone" data-day="monday" id="monday-zone">
+                <p class="empty-hint">拖曳動作到這裡</p>
+              </div>
+            </div>
+
+            <!-- 週二 -->
+            <div class="day-card mb-2">
+              <div class="day-header" style="background-color: #FF6B6B;">
+                📅 星期二 (Tuesday)
+              </div>
+              <div class="day-dropzone" data-day="tuesday" id="tuesday-zone">
+                <p class="empty-hint">拖曳動作到這裡</p>
+              </div>
+            </div>
+
+            <!-- 週三 -->
+            <div class="day-card mb-2">
+              <div class="day-header" style="background-color: #45B7D1;">
+                📅 星期三 (Wednesday)
+              </div>
+              <div class="day-dropzone" data-day="wednesday" id="wednesday-zone">
+                <p class="empty-hint">拖曳動作到這裡</p>
+              </div>
+            </div>
+
+            <!-- 週四 -->
+            <div class="day-card mb-2">
+              <div class="day-header" style="background-color: #FFA07A;">
+                📅 星期四 (Thursday)
+              </div>
+              <div class="day-dropzone" data-day="thursday" id="thursday-zone">
+                <p class="empty-hint">拖曳動作到這裡</p>
+              </div>
+            </div>
+
+            <!-- 週五 -->
+            <div class="day-card mb-2">
+              <div class="day-header" style="background-color: #98D8C8;">
+                📅 星期五 (Friday)
+              </div>
+              <div class="day-dropzone" data-day="friday" id="friday-zone">
+                <p class="empty-hint">拖曳動作到這裡</p>
+              </div>
+            </div>
+
+            <!-- 週六 -->
+            <div class="day-card mb-2">
+              <div class="day-header" style="background-color: #F7DC6F;">
+                📅 星期六 (Saturday)
+              </div>
+              <div class="day-dropzone" data-day="saturday" id="saturday-zone">
+                <p class="empty-hint">拖曳動作到這裡</p>
+              </div>
+            </div>
+
+            <!-- 週日 -->
+            <div class="day-card mb-2">
+              <div class="day-header" style="background-color: #BB8FCE;">
+                📅 星期日 (Sunday)
+              </div>
+              <div class="day-dropzone" data-day="sunday" id="sunday-zone">
+                <p class="empty-hint">拖曳動作到這裡</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 引入 JavaScript -->
+  <script src="../js/api.js"></script>
+  <script>
+    let allExercises = [];
+    let currentPlan = {
+      monday: [],
+      tuesday: [],
+      wednesday: [],
+      thursday: [],
+      friday: [],
+      saturday: [],
+      sunday: []
+    };
+
+    // 頁面載入完成後執行
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadExercises();
+      await loadCurrentPlan();
+      setupDragAndDrop();
+      setupSearch();
+      setupSaveButton();
+    });
+
+    // 載入所有動作
+    async function loadExercises() {
+      allExercises = await fetchExercises();
+      renderExerciseList(allExercises);
+    }
+
+    // 載入目前計畫
+    async function loadCurrentPlan() {
+      const plan = await fetchWeeklyPlan();
+      if (plan && plan.weeklyPlan) {
+        currentPlan = plan.weeklyPlan;
+        renderCurrentPlan();
+      }
+    }
+
+    // 渲染動作清單（左側可拖曳）
+    function renderExerciseList(exercises) {
+      const container = document.getElementById('exercise-list');
+      container.innerHTML = '';
+      
+      exercises.forEach(exercise => {
+        const card = document.createElement('div');
+        card.className = 'draggable-exercise';
+        card.draggable = true;
+        card.dataset.exerciseId = exercise._id;
+        card.dataset.exerciseName = exercise.name;
+        
+        card.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <div style="font-size: 1.5rem;">⋮⋮</div>
+            <div style="flex: 1;">
+              <div style="font-weight: bold; margin-bottom: 0.25rem;">${exercise.name}</div>
+              <div style="display: flex; gap: 0.25rem;">
+                <span class="tag tag-primary" style="font-size: 0.75rem;">${exercise.targetMuscle}</span>
+                <span class="tag tag-warning" style="font-size: 0.75rem;">${exercise.difficulty}</span>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        container.appendChild(card);
+      });
+    }
+
+    // 渲染目前計畫（右側放置區）
+    function renderCurrentPlan() {
+      const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+      
+      days.forEach(day => {
+        const zone = document.getElementById(`${day}-zone`);
+        const exercises = currentPlan[day] || [];
+        
+        if (exercises.length === 0) {
+          zone.innerHTML = '<p class="empty-hint">拖曳動作到這裡</p>';
+        } else {
+          zone.innerHTML = '';
+          exercises.forEach(item => {
+            if (item.exerciseId) {
+              const exerciseItem = createPlanItem(item.exerciseId, day);
+              zone.appendChild(exerciseItem);
+            }
+          });
+        }
+      });
+    }
+
+    // 建立計畫項目
+    function createPlanItem(exercise, day) {
+      const item = document.createElement('div');
+      item.className = 'plan-item';
+      item.dataset.exerciseId = exercise._id;
+      
+      item.innerHTML = `
+        <div style="flex: 1;">
+          <div style="font-weight: bold;">${exercise.name}</div>
+          <span class="tag tag-primary" style="font-size: 0.75rem;">${exercise.targetMuscle}</span>
+        </div>
+        <button class="remove-btn" onclick="removePlanItem('${exercise._id}', '${day}')">×</button>
+      `;
+      
+      return item;
+    }
+
+    // 設定拖放功能（使用事件委派，只綁定一次）
+    function setupDragAndDrop() {
+      const exerciseList = document.getElementById('exercise-list');
+      const dropZones = document.querySelectorAll('.day-dropzone');
+      
+      // 使用事件委派處理拖曳
+      exerciseList.addEventListener('dragstart', (e) => {
+        if (e.target.classList.contains('draggable-exercise')) {
+          e.dataTransfer.effectAllowed = 'copy';
+          e.dataTransfer.setData('exerciseId', e.target.dataset.exerciseId);
+          e.dataTransfer.setData('exerciseName', e.target.dataset.exerciseName);
+          e.target.style.opacity = '0.5';
+        }
+      });
+      
+      exerciseList.addEventListener('dragend', (e) => {
+        if (e.target.classList.contains('draggable-exercise')) {
+          e.target.style.opacity = '1';
+        }
+      });
+      
+      // 放置區域
+      dropZones.forEach(zone => {
+        zone.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'copy';
+          zone.classList.add('drag-over');
+        });
+        
+        zone.addEventListener('dragleave', (e) => {
+          zone.classList.remove('drag-over');
+        });
+        
+        zone.addEventListener('drop', async (e) => {
+          e.preventDefault();
+          zone.classList.remove('drag-over');
+          
+          const exerciseId = e.dataTransfer.getData('exerciseId');
+          const exerciseName = e.dataTransfer.getData('exerciseName');
+          const day = zone.dataset.day;
+          
+          // 檢查是否已存在
+          const exists = currentPlan[day].some(item => 
+            item.exerciseId && item.exerciseId._id === exerciseId
+          );
+          
+          if (exists) {
+            showNotification('該動作已在計畫中', 'warning');
+            return;
+          }
+          
+          // 加入計畫
+          const result = await addExerciseToPlan(exerciseId, day);
+          
+          if (result) {
+            await loadCurrentPlan();
+          }
+        });
+      });
+    }
+
+    // 設定搜尋功能
+    function setupSearch() {
+      document.getElementById('search-exercises').addEventListener('input', (e) => {
+        const keyword = e.target.value.toLowerCase();
+        const filtered = allExercises.filter(ex => 
+          ex.name.toLowerCase().includes(keyword)
+        );
+        renderExerciseList(filtered);
+        // 不需要重新設定拖放了，因為使用事件委派
+      });
+    }
+
+    // 移除計畫項目
+    async function removePlanItem(exerciseId, day) {
+      const result = await removeExerciseFromPlan(exerciseId, day);
+      if (result) {
+        await loadCurrentPlan();
+      }
+    }
+
+    // 設定儲存按鈕
+    function setupSaveButton() {
+      document.getElementById('save-plan-btn').addEventListener('click', async () => {
+        showNotification('計畫已自動儲存！', 'success');
+        
+        setTimeout(() => {
+          const goToView = confirm('要前往查看計畫嗎？');
+          if (goToView) {
+            window.location.href = 'workout-plan.html';
+          }
+        }, 500);
+      });
+    }
+  </script>
+
+  <style>
+    /* 動作卡片（可拖曳） */
+    .draggable-exercise {
+      background: white;
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+      border-radius: var(--radius-md);
+      border: 2px solid var(--border-color);
+      cursor: move;
+      transition: all 0.3s ease;
+    }
+
+    .draggable-exercise:hover {
+      border-color: var(--primary-color);
+      box-shadow: var(--shadow-md);
+      transform: scale(1.02);
+    }
+
+    /* 日期卡片 */
+    .day-card {
+      background: white;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .day-header {
+      padding: 0.75rem 1rem;
+      color: white;
+      font-weight: bold;
+    }
+
+    /* 放置區域 */
+    .day-dropzone {
+      min-height: 80px;
+      padding: 1rem;
+      background: #f8f9fa;
+      transition: all 0.3s ease;
+    }
+
+    .day-dropzone.drag-over {
+      background: #e3f7f6;
+      border: 2px dashed var(--primary-color);
+    }
+
+    .empty-hint {
+      text-align: center;
+      color: #999;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+    }
+
+    /* 計畫項目 */
+    .plan-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+      background: white;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color);
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .remove-btn {
+      background: var(--error-color);
+      color: white;
+      border: none;
+      border-radius: var(--radius-full);
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+      font-size: 1.2rem;
+      line-height: 1;
+      transition: all 0.3s ease;
+    }
+
+    .remove-btn:hover {
+      transform: scale(1.1);
+      box-shadow: var(--shadow-md);
+    }
+  </style>
+</body>
+</html>

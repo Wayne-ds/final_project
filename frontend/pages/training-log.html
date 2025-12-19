@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>訓練記錄 - FitMotion</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <a href="../index.html" class="navbar-brand">💪 FitMotion</a>
+      <ul class="navbar-nav">
+        <li><a href="../index.html" class="nav-link">首頁</a></li>
+        <li><a href="exercise-library.html" class="nav-link">動作資料庫</a></li>
+        <li><a href="workout-plan.html" class="nav-link">訓練計畫</a></li>
+        <li><a href="training-log.html" class="nav-link active">訓練記錄</a></li>
+        <li><a href="statistics.html" class="nav-link">統計分析</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="container">
+      <h1 class="mb-3">📝 訓練記錄</h1>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+        <div>
+          <div class="card">
+            <div class="card-header">➕ 新增訓練記錄</div>
+            <div class="card-body">
+              <form id="log-form">
+                <div class="form-group">
+                  <label class="form-label">選擇動作 *</label>
+                  <select id="exercise-select" class="form-select" required>
+                    <option value="">-- 請選擇動作 --</option>
+                  </select>
+                  <div id="exercise-feedback" class="form-feedback"></div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">重量 (kg) *</label>
+                  <input type="number" id="weight-input" class="form-input" placeholder="例如：60" min="0" max="500" step="0.5" required>
+                  <div id="weight-feedback" class="form-feedback"></div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">次數 (reps) *</label>
+                  <input type="number" id="reps-input" class="form-input" placeholder="例如：10" min="1" max="100" required>
+                  <div id="reps-feedback" class="form-feedback"></div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">組數 (sets) *</label>
+                  <input type="number" id="sets-input" class="form-input" placeholder="例如：3" min="1" max="20" required>
+                  <div id="sets-feedback" class="form-feedback"></div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">備註（選填）</label>
+                  <textarea id="notes-input" class="form-textarea" rows="3" placeholder="記錄今天的感受、注意事項等..."></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%;">✅ 送出記錄</button>
+              </form>
+
+              <!-- 🆕 1RM 計算器 -->
+              <div class="card mt-3" style="background: #e3f7f6;">
+                <div style="font-weight: bold; margin-bottom: 0.5rem;">🧮 1RM 計算器</div>
+                <div style="font-size: 0.9rem; color: #666;">
+                  輸入重量和次數後，即時計算預估 1RM
+                </div>
+                <div id="1rm-display" style="margin-top: 0.5rem; font-size: 1.5rem; color: var(--primary-color); font-weight: bold;">
+                  -- kg
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card">
+            <div class="card-header">📅 今日記錄</div>
+            <div class="card-body">
+              <div id="today-logs"><p class="text-center" style="color: #999; padding: 2rem;">載入中...</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 🆕 PR 記錄 -->
+      <div class="card mt-4">
+        <div class="card-header">🏆 個人最佳記錄 (PR)</div>
+        <div class="card-body">
+          <div id="pr-logs"><p class="text-center" style="color: #999;">載入中...</p></div>
+        </div>
+      </div>
+
+      <div class="card mt-4">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+          <span>📜 歷史記錄</span>
+          <div>
+            <input type="date" id="date-filter" class="form-input" style="display: inline-block; width: auto;">
+            <button id="view-stats-btn" class="btn btn-outline">📊 查看統計</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="history-logs"><p class="text-center" style="color: #999;">選擇日期查看記錄</p></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 🆕 編輯記錄 Modal -->
+  <div id="edit-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>✏️ 編輯記錄</h3>
+        <button class="modal-close" onclick="closeEditModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="edit-form">
+          <input type="hidden" id="edit-log-id">
+          
+          <div class="form-group">
+            <label class="form-label">動作</label>
+            <input type="text" id="edit-exercise-name" class="form-input" disabled>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">重量 (kg) *</label>
+            <input type="number" id="edit-weight" class="form-input" min="0" max="500" step="0.5" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">次數 *</label>
+            <input type="number" id="edit-reps" class="form-input" min="1" max="100" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">組數 *</label>
+            <input type="number" id="edit-sets" class="form-input" min="1" max="20" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">備註</label>
+            <textarea id="edit-notes" class="form-textarea" rows="3"></textarea>
+          </div>
+
+          <div style="display: flex; gap: 0.5rem;">
+            <button type="submit" class="btn btn-primary" style="flex: 1;">💾 儲存</button>
+            <button type="button" class="btn btn-outline" onclick="closeEditModal()" style="flex: 1;">取消</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/api.js"></script>
+  <script>
+    let allExercises = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadExercises();
+      await loadTodayLogs();
+      await loadPRLogs();
+      setupFormValidation();
+      setupDateFilter();
+      setup1RMCalculator();
+      setupEditForm();
+      
+      const urlParams = new URLSearchParams(window.location.search);
+      const exerciseId = urlParams.get('exerciseId');
+      if (exerciseId) {
+        document.getElementById('exercise-select').value = exerciseId;
+      }
+      
+      document.getElementById('view-stats-btn').addEventListener('click', () => {
+        window.location.href = 'statistics.html';
+      });
+    });
+
+    async function loadExercises() {
+      allExercises = await fetchExercises();
+      const select = document.getElementById('exercise-select');
+      
+      allExercises.forEach(exercise => {
+        const option = document.createElement('option');
+        option.value = exercise._id;
+        option.textContent = `${exercise.name} (${exercise.targetMuscle})`;
+        select.appendChild(option);
+      });
+    }
+
+    async function loadTodayLogs() {
+      const today = new Date().toISOString().split('T')[0];
+      const logs = await fetchLogsByDate(today);
+      renderTodayLogs(logs);
+    }
+
+    // 🆕 載入 PR 記錄
+    async function loadPRLogs() {
+      const prLogs = await fetchPRLogs();
+      renderPRLogs(prLogs);
+    }
+
+    // 🆕 渲染 PR 記錄
+    function renderPRLogs(logs) {
+      const container = document.getElementById('pr-logs');
+      
+      if (logs.length === 0) {
+        container.innerHTML = '<p class="text-center" style="color: #999; padding: 2rem;">還沒有 PR 記錄，繼續努力！💪</p>';
+        return;
+      }
+      
+      container.innerHTML = '';
+      logs.forEach(log => {
+        const prCard = document.createElement('div');
+        prCard.style.cssText = 'padding: 1rem; margin-bottom: 0.5rem; background: #fff3cd; border-radius: var(--radius-md); border-left: 4px solid #ffc107;';
+        
+        prCard.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <h4 style="margin: 0 0 0.5rem 0;">🏆 ${log.exerciseId.name}</h4>
+              <div style="display: flex; gap: 0.5rem;">
+                <span class="tag tag-warning">💪 ${log.weight} kg</span>
+                <span class="tag tag-success">🔢 ${log.sets} 組 × ${log.reps} 次</span>
+                <span class="tag tag-info">📊 1RM: ${log.estimated1RM} kg</span>
+              </div>
+              <small style="color: #666;">達成日期: ${new Date(log.date).toLocaleDateString('zh-TW')}</small>
+            </div>
+          </div>
+        `;
+        
+        container.appendChild(prCard);
+      });
+    }
+
+    function renderTodayLogs(logs) {
+      const container = document.getElementById('today-logs');
+      
+      if (logs.length === 0) {
+        container.innerHTML = '<p class="text-center" style="color: #999; padding: 2rem;">今天還沒有記錄<br><span style="font-size: 0.9rem;">開始你的第一次訓練吧！💪</span></p>';
+        return;
+      }
+      
+      container.innerHTML = '';
+      logs.forEach(log => {
+        const logCard = createLogCard(log, true);
+        container.appendChild(logCard);
+      });
+    }
+
+    function createLogCard(log, showActions = false) {
+      const card = document.createElement('div');
+      card.className = 'log-card';
+      card.style.cssText = 'padding: 1rem; margin-bottom: 0.5rem; background: #f8f9fa; border-radius: var(--radius-md); border-left: 4px solid var(--primary-color);';
+      
+      const exerciseName = log.exerciseId ? log.exerciseId.name : '未知動作';
+      const time = new Date(log.date).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+      const prBadge = log.isPR ? '<span class="tag tag-warning">🏆 PR</span>' : '';
+      const editedBadge = log.isEdited ? '<small style="color: #999;">(已編輯)</small>' : '';
+      
+      card.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: start;">
+          <div style="flex: 1;">
+            <h4 style="margin: 0 0 0.5rem 0;">${exerciseName} ${prBadge} ${editedBadge}</h4>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <span class="tag tag-primary">💪 ${log.weight} kg</span>
+              <span class="tag tag-success">🔢 ${log.sets} 組 × ${log.reps} 次</span>
+              <span class="tag tag-info">📊 Volume: ${log.volume || (log.weight * log.reps * log.sets)}</span>
+              <span class="tag tag-secondary">🎯 1RM: ${log.estimated1RM || calculateEpley1RM(log.weight, log.reps)} kg</span>
+              <span class="tag tag-info">🕐 ${time}</span>
+            </div>
+            ${log.notes ? `<p style="margin-top: 0.5rem; color: #666; font-size: 0.9rem;">📝 ${log.notes}</p>` : ''}
+          </div>
+          ${showActions ? `
+            <div style="display: flex; gap: 0.5rem;">
+              <button class="btn btn-outline" onclick="openEditModal('${log._id}', ${JSON.stringify(log).replace(/"/g, '&quot;')})" style="padding: 0.5rem;">編輯</button>
+              <button class="btn btn-danger" onclick="deleteLogRecord('${log._id}')" style="padding: 0.5rem;">刪除</button>
+            </div>
+          ` : ''}
+        </div>
+      `;
+      
+      return card;
+    }
+
+    // 🆕 1RM 計算器
+    function setup1RMCalculator() {
+      const weightInput = document.getElementById('weight-input');
+      const repsInput = document.getElementById('reps-input');
+      const display = document.getElementById('1rm-display');
+      
+      function updateCalculator() {
+        const weight = parseFloat(weightInput.value);
+        const reps = parseInt(repsInput.value);
+        
+        if (weight > 0 && reps > 0) {
+          const oneRM = calculateEpley1RM(weight, reps);
+          display.textContent = `${oneRM} kg`;
+          display.style.color = 'var(--primary-color)';
+        } else {
+          display.textContent = '-- kg';
+          display.style.color = '#999';
+        }
+      }
+      
+      weightInput.addEventListener('input', updateCalculator);
+      repsInput.addEventListener('input', updateCalculator);
+    }
+
+    // 🆕 編輯 Modal 功能
+    function openEditModal(logId, log) {
+      document.getElementById('edit-log-id').value = logId;
+      document.getElementById('edit-exercise-name').value = log.exerciseId.name;
+      document.getElementById('edit-weight').value = log.weight;
+      document.getElementById('edit-reps').value = log.reps;
+      document.getElementById('edit-sets').value = log.sets;
+      document.getElementById('edit-notes').value = log.notes || '';
+      
+      document.getElementById('edit-modal').style.display = 'flex';
+    }
+
+    function closeEditModal() {
+      document.getElementById('edit-modal').style.display = 'none';
+      document.getElementById('edit-form').reset();
+    }
+
+    function setupEditForm() {
+      document.getElementById('edit-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const logId = document.getElementById('edit-log-id').value;
+        const weight = document.getElementById('edit-weight').value;
+        const reps = document.getElementById('edit-reps').value;
+        const sets = document.getElementById('edit-sets').value;
+        const notes = document.getElementById('edit-notes').value;
+        
+        const result = await updateTrainingLog(logId, weight, reps, sets, notes);
+        
+        if (result) {
+          closeEditModal();
+          await loadTodayLogs();
+          await loadPRLogs();
+        }
+      });
+    }
+
+    function setupFormValidation() {
+      const form = document.getElementById('log-form');
+      
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const exerciseId = document.getElementById('exercise-select').value;
+        const weight = document.getElementById('weight-input').value;
+        const reps = document.getElementById('reps-input').value;
+        const sets = document.getElementById('sets-input').value;
+        const notes = document.getElementById('notes-input').value;
+        
+        const result = await createTrainingLog(exerciseId, weight, reps, sets, notes);
+        
+        if (result) {
+          form.reset();
+          document.getElementById('1rm-display').textContent = '-- kg';
+          await loadTodayLogs();
+          await loadPRLogs();
+        }
+      });
+    }
+
+    function setupDateFilter() {
+      const dateFilter = document.getElementById('date-filter');
+      dateFilter.value = new Date().toISOString().split('T')[0];
+      
+      dateFilter.addEventListener('change', async (e) => {
+        const logs = await fetchLogsByDate(e.target.value);
+        renderHistoryLogs(logs);
+      });
+    }
+
+    function renderHistoryLogs(logs) {
+      const container = document.getElementById('history-logs');
+      
+      if (logs.length === 0) {
+        container.innerHTML = '<p class="text-center" style="color: #999; padding: 2rem;">該日期沒有記錄</p>';
+        return;
+      }
+      
+      container.innerHTML = '';
+      logs.forEach(log => {
+        const logCard = createLogCard(log, true); // 🆕 改為 true，啟用編輯功能
+        container.appendChild(logCard);
+      });
+    }
+
+    async function deleteLogRecord(logId) {
+      if (!confirm('確定要刪除這筆記錄嗎？')) return;
+      
+      const result = await deleteLog(logId);
+      if (result) {
+        await loadTodayLogs();
+        await loadPRLogs();
+      }
+    }
+  </script>
+
+  <style>
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+    }
+    
+    .modal-content {
+      background: white;
+      border-radius: var(--radius-lg);
+      max-width: 500px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    
+    .modal-header {
+      padding: 1.5rem;
+      border-bottom: 2px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .modal-header h3 {
+      margin: 0;
+    }
+    
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 2rem;
+      cursor: pointer;
+      color: #999;
+      line-height: 1;
+    }
+    
+    .modal-close:hover {
+      color: var(--error-color);
+    }
+    
+    .modal-body {
+      padding: 1.5rem;
+    }
+  </style>
+</body>
+</html>

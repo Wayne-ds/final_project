@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>1RM 計算器 - FitMotion</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <a href="../index.html" class="navbar-brand">💪 FitMotion</a>
+      <ul class="navbar-nav">
+        <li><a href="../index.html" class="nav-link">首頁</a></li>
+        <li><a href="exercise-library.html" class="nav-link">動作資料庫</a></li>
+        <li><a href="workout-plan.html" class="nav-link">訓練計畫</a></li>
+        <li><a href="training-log.html" class="nav-link">訓練記錄</a></li>
+        <li><a href="statistics.html" class="nav-link">統計分析</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="container">
+      <h1 class="mb-3">🧮 1RM 計算器</h1>
+
+      <div class="grid grid-2">
+        <!-- 手動計算器 -->
+        <div class="card">
+          <div class="card-header">⚡ 快速計算</div>
+          <div class="card-body">
+            <p style="color: #666; margin-bottom: 1.5rem;">
+              輸入你能舉起的重量和次數，立即計算預估的 1RM（一次最大重量）
+            </p>
+
+            <div class="form-group">
+              <label class="form-label">重量 (kg)</label>
+              <input type="number" id="manual-weight" class="form-input" placeholder="例如：80" min="1" step="0.5">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">次數 (reps)</label>
+              <input type="number" id="manual-reps" class="form-input" placeholder="例如：8" min="1" max="100">
+            </div>
+
+            <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; text-align: center; margin-top: 1rem;">
+              <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 0.5rem;">預估 1RM</div>
+              <div id="manual-result" style="font-size: 3rem; font-weight: bold;">-- kg</div>
+              <div style="font-size: 0.85rem; opacity: 0.8; margin-top: 0.5rem;">基於 Epley 公式計算</div>
+            </div>
+
+            <!-- 百分比參考表 -->
+            <div class="card mt-3">
+              <div style="font-weight: bold; margin-bottom: 1rem;">📊 訓練強度參考</div>
+              <div id="percentage-table" style="font-size: 0.9rem;">
+                <p style="color: #999;">輸入重量和次數後顯示</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 基於歷史記錄 -->
+        <div class="card">
+          <div class="card-header">📈 基於訓練記錄</div>
+          <div class="card-body">
+            <p style="color: #666; margin-bottom: 1.5rem;">
+              根據你的歷史訓練記錄，查看各動作的預估 1RM
+            </p>
+
+            <div class="form-group">
+              <label class="form-label">選擇動作</label>
+              <select id="exercise-selector" class="form-select">
+                <option value="">-- 選擇動作 --</option>
+              </select>
+            </div>
+
+            <div id="exercise-1rm-result"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1RM 說明 -->
+      <div class="card mt-4">
+        <div class="card-header">ℹ️ 什麼是 1RM？</div>
+        <div class="card-body">
+          <div class="grid grid-2">
+            <div>
+              <h3>定義</h3>
+              <p>
+                1RM (One Repetition Maximum) 是指你在保持正確姿勢下，能夠完成「一次完整動作」的最大重量。
+              </p>
+
+              <h3 class="mt-3">計算公式</h3>
+              <p>
+                本系統使用 <strong>Epley 公式</strong>：
+                <br><code style="background: #f8f9fa; padding: 0.5rem; border-radius: 4px; display: inline-block; margin-top: 0.5rem;">
+                  1RM = 重量 × (1 + 次數 / 30)
+                </code>
+              </p>
+            </div>
+
+            <div>
+              <h3>訓練強度建議</h3>
+              <ul style="list-style: none; padding: 0;">
+                <li style="margin-bottom: 0.5rem;">💪 <strong>90-100% 1RM</strong>：最大力量訓練 (1-3次)</li>
+                <li style="margin-bottom: 0.5rem;">🏋️ <strong>80-90% 1RM</strong>：力量訓練 (3-6次)</li>
+                <li style="margin-bottom: 0.5rem;">💪 <strong>70-80% 1RM</strong>：肌肥大訓練 (6-12次)</li>
+                <li style="margin-bottom: 0.5rem;">🏃 <strong>60-70% 1RM</strong>：肌耐力訓練 (12-20次)</li>
+              </ul>
+
+              <div class="card mt-3" style="background: #fff3cd; border-left: 4px solid #ffc107;">
+                <p style="margin: 0; font-size: 0.9rem;">
+                  <strong>⚠️ 注意：</strong>初學者不建議直接測試 1RM，請循序漸進，並在有教練指導下進行。
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="../js/api.js"></script>
+  <script>
+    let allExercises = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadExercises();
+      setupManualCalculator();
+      setupExerciseSelector();
+    });
+
+    async function loadExercises() {
+      allExercises = await fetchExercises();
+      const selector = document.getElementById('exercise-selector');
+      
+      allExercises.forEach(exercise => {
+        const option = document.createElement('option');
+        option.value = exercise._id;
+        option.textContent = exercise.name;
+        selector.appendChild(option);
+      });
+    }
+
+    // 手動計算器
+    function setupManualCalculator() {
+      const weightInput = document.getElementById('manual-weight');
+      const repsInput = document.getElementById('manual-reps');
+      const resultDisplay = document.getElementById('manual-result');
+      const percentageTable = document.getElementById('percentage-table');
+      
+      function calculate() {
+        const weight = parseFloat(weightInput.value);
+        const reps = parseInt(repsInput.value);
+        
+        if (weight > 0 && reps > 0) {
+          const oneRM = calculateEpley1RM(weight, reps);
+          resultDisplay.textContent = `${oneRM} kg`;
+          
+          // 顯示百分比參考表
+          percentageTable.innerHTML = `
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem;">
+              <div style="padding: 0.5rem; background: #f8f9fa; border-radius: 4px;">
+                <strong>100%:</strong> ${oneRM} kg
+              </div>
+              <div style="padding: 0.5rem; background: #f8f9fa; border-radius: 4px;">
+                <strong>95%:</strong> ${Math.round(oneRM * 0.95 * 10) / 10} kg
+              </div>
+              <div style="padding: 0.5rem; background: #f8f9fa; border-radius: 4px;">
+                <strong>90%:</strong> ${Math.round(oneRM * 0.9 * 10) / 10} kg
+              </div>
+              <div style="padding: 0.5rem; background: #f8f9fa; border-radius: 4px;">
+                <strong>85%:</strong> ${Math.round(oneRM * 0.85 * 10) / 10} kg
+              </div>
+              <div style="padding: 0.5rem; background: #f8f9fa; border-radius: 4px;">
+                <strong>80%:</strong> ${Math.round(oneRM * 0.8 * 10) / 10} kg
+              </div>
+              <div style="padding: 0.5rem; background: #f8f9fa; border-radius: 4px;">
+                <strong>75%:</strong> ${Math.round(oneRM * 0.75 * 10) / 10} kg
+              </div>
+              <div style="padding: 0.5rem; background: #f8f9fa; border-radius: 4px;">
+                <strong>70%:</strong> ${Math.round(oneRM * 0.7 * 10) / 10} kg
+              </div>
+              <div style="padding: 0.5rem; background: #f8f9fa; border-radius: 4px;">
+                <strong>65%:</strong> ${Math.round(oneRM * 0.65 * 10) / 10} kg
+              </div>
+            </div>
+          `;
+        } else {
+          resultDisplay.textContent = '-- kg';
+          percentageTable.innerHTML = '<p style="color: #999;">輸入重量和次數後顯示</p>';
+        }
+      }
+      
+      weightInput.addEventListener('input', calculate);
+      repsInput.addEventListener('input', calculate);
+    }
+
+    // 基於歷史記錄
+    function setupExerciseSelector() {
+      document.getElementById('exercise-selector').addEventListener('change', async (e) => {
+        const exerciseId = e.target.value;
+        const container = document.getElementById('exercise-1rm-result');
+        
+        if (!exerciseId) {
+          container.innerHTML = '';
+          return;
+        }
+        
+        container.innerHTML = '<p class="text-center" style="color: #999; padding: 2rem;">計算中...</p>';
+        
+        const data = await calculate1RM(exerciseId);
+        
+        if (!data || data.estimated1RM === 0) {
+          container.innerHTML = '<p class="text-center" style="color: #999; padding: 2rem;">該動作還沒有訓練記錄</p>';
+          return;
+        }
+        
+        const exerciseName = allExercises.find(ex => ex._id === exerciseId)?.name || '未知動作';
+        
+        container.innerHTML = `
+          <div class="card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 2rem; text-align: center; margin-top: 1rem;">
+            <div style="font-size: 1rem; opacity: 0.9; margin-bottom: 0.5rem;">${exerciseName}</div>
+            <div style="font-size: 3rem; font-weight: bold;">${data.estimated1RM} kg</div>
+            <div style="font-size: 0.85rem; opacity: 0.9; margin-top: 0.5rem;">
+              基於 ${data.basedOn.weight}kg × ${data.basedOn.reps} 次<br>
+              記錄日期：${new Date(data.basedOn.date).toLocaleDateString('zh-TW')}
+            </div>
+          </div>
+          
+          ${data.history.length > 1 ? `
+            <div class="card mt-3">
+              <div style="font-weight: bold; margin-bottom: 1rem;">📊 歷史 1RM 紀錄</div>
+              <div style="max-height: 300px; overflow-y: auto;">
+                ${data.history.map((record, index) => `
+                  <div style="padding: 0.75rem; margin-bottom: 0.5rem; background: #f8f9fa; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                      <strong>${record.estimated1RM} kg</strong>
+                      <span style="color: #666; font-size: 0.9rem; margin-left: 0.5rem;">
+                        (${record.weight}kg × ${record.reps}次)
+                      </span>
+                    </div>
+                    <small style="color: #999;">${new Date(record.date).toLocaleDateString('zh-TW')}</small>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+        `;
+      });
+    }
+  </script>
+</body>
+</html>

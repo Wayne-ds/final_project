@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>自訂動作 - FitMotion</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <a href="../index.html" class="navbar-brand">💪 FitMotion</a>
+      <ul class="navbar-nav">
+        <li><a href="../index.html" class="nav-link">首頁</a></li>
+        <li><a href="exercise-library.html" class="nav-link active">動作資料庫</a></li>
+        <li><a href="workout-plan.html" class="nav-link">訓練計畫</a></li>
+        <li><a href="training-log.html" class="nav-link">訓練記錄</a></li>
+        <li><a href="statistics.html" class="nav-link">統計分析</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="container">
+      <a href="exercise-library.html" class="btn btn-outline mb-3">← 返回動作資料庫</a>
+      
+      <h1 class="mb-3">➕ 新增自訂動作</h1>
+
+      <div class="card">
+        <div class="card-body">
+          <form id="custom-exercise-form">
+            <div class="grid grid-2">
+              <!-- 動作名稱 -->
+              <div class="form-group">
+                <label class="form-label">動作名稱 *</label>
+                <input type="text" id="name" class="form-input" placeholder="例如：單臂啞鈴划船" required>
+              </div>
+
+              <!-- 目標部位 -->
+              <div class="form-group">
+                <label class="form-label">目標部位 *</label>
+                <select id="targetMuscle" class="form-select" required>
+                  <option value="">-- 選擇部位 --</option>
+                  <option value="胸肌">胸肌</option>
+                  <option value="背肌">背肌</option>
+                  <option value="腿部">腿部</option>
+                  <option value="肩膀">肩膀</option>
+                  <option value="手臂">手臂</option>
+                  <option value="核心">核心</option>
+                </select>
+              </div>
+
+              <!-- 器材 -->
+              <div class="form-group">
+                <label class="form-label">使用器材 *</label>
+                <select id="equipment" class="form-select" required>
+                  <option value="">-- 選擇器材 --</option>
+                  <option value="啞鈴">啞鈴</option>
+                  <option value="槓鈴">槓鈴</option>
+                  <option value="機械">機械</option>
+                  <option value="徒手">徒手</option>
+                  <option value="彈力帶">彈力帶</option>
+                  <option value="壺鈴">壺鈴</option>
+                  <option value="其他">其他</option>
+                </select>
+              </div>
+
+              <!-- 難度 -->
+              <div class="form-group">
+                <label class="form-label">難度等級 *</label>
+                <select id="difficulty" class="form-select" required>
+                  <option value="">-- 選擇難度 --</option>
+                  <option value="初級">初級</option>
+                  <option value="中級">中級</option>
+                  <option value="高級">高級</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- 教學影片 URL -->
+            <div class="form-group">
+              <label class="form-label">YouTube 影片網址（選填）</label>
+              <input type="url" id="videoUrl" class="form-input" placeholder="https://www.youtube.com/watch?v=...">
+              <small style="color: #666;">貼上 YouTube 影片連結，將自動顯示在動作詳情頁</small>
+            </div>
+
+            <!-- 圖片 URL -->
+            <div class="form-group">
+              <label class="form-label">圖片網址（選填）</label>
+              <input type="url" id="imageUrl" class="form-input" placeholder="https://...">
+              <small style="color: #666;">可使用 Imgur、Google Drive 等圖床</small>
+            </div>
+
+            <!-- 動作步驟 -->
+            <div class="form-group">
+              <label class="form-label">動作步驟（選填，每行一個步驟）</label>
+              <textarea id="instructions" class="form-textarea" rows="5" placeholder="1. 雙腳與肩同寬站立
+2. 握住啞鈴於身體兩側
+3. ..."></textarea>
+            </div>
+
+            <!-- 注意事項 -->
+            <div class="form-group">
+              <label class="form-label">注意事項（選填，每行一項）</label>
+              <textarea id="tips" class="form-textarea" rows="3" placeholder="保持核心穩定
+避免用腰部借力
+..."></textarea>
+            </div>
+
+            <!-- 提交按鈕 -->
+            <div style="display: flex; gap: 1rem;">
+              <button type="submit" class="btn btn-primary" style="flex: 1;">✅ 新增動作</button>
+              <button type="button" class="btn btn-outline" onclick="resetForm()" style="flex: 1;">🔄 重設表單</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="../js/api.js"></script>
+  <script>
+    document.getElementById('custom-exercise-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const formData = {
+        name: document.getElementById('name').value.trim(),
+        targetMuscle: document.getElementById('targetMuscle').value,
+        equipment: document.getElementById('equipment').value,
+        difficulty: document.getElementById('difficulty').value,
+        videoUrl: document.getElementById('videoUrl').value.trim(),
+        imageUrl: document.getElementById('imageUrl').value.trim() || 'https://via.placeholder.com/300x200?text=Custom+Exercise',
+        instructions: document.getElementById('instructions').value
+          .split('\n')
+          .filter(line => line.trim())
+          .map(line => line.trim()),
+        tips: document.getElementById('tips').value
+          .split('\n')
+          .filter(line => line.trim())
+          .map(line => line.trim())
+      };
+      
+      const result = await createCustomExercise(formData);
+      
+      if (result) {
+        const goToLibrary = confirm('動作新增成功！要前往動作資料庫查看嗎？');
+        if (goToLibrary) {
+          window.location.href = 'exercise-library.html';
+        } else {
+          resetForm();
+        }
+      }
+    });
+    
+    function resetForm() {
+      document.getElementById('custom-exercise-form').reset();
+    }
+  </script>
+</body>
+</html>

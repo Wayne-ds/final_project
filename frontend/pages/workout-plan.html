@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>訓練計畫 - FitMotion</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <!-- 導航列 -->
+  <nav class="navbar">
+    <div class="container">
+      <a href="../index.html" class="navbar-brand">💪 FitMotion</a>
+      <ul class="navbar-nav">
+        <li><a href="../index.html" class="nav-link">首頁</a></li>
+        <li><a href="exercise-library.html" class="nav-link">動作資料庫</a></li>
+        <li><a href="workout-plan.html" class="nav-link active">訓練計畫</a></li>
+        <li><a href="training-log.html" class="nav-link">訓練記錄</a></li>
+        <li><a href="statistics.html" class="nav-link">統計分析</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- 主要內容 -->
+  <main class="main-content">
+    <div class="container">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1>📋 我的訓練計畫</h1>
+        <a href="plan-editor.html" class="btn btn-primary">✏️ 編輯計畫</a>
+      </div>
+
+      <!-- 載入中 -->
+      <div id="loading" class="text-center" style="padding: 3rem;">
+        <div class="loading" style="margin: 0 auto;"></div>
+        <p style="margin-top: 1rem; color: #666;">載入中...</p>
+      </div>
+
+      <!-- 每週計畫 -->
+      <div id="weekly-plan" class="hidden">
+        <!-- 週一 -->
+        <div class="card mb-3">
+          <div class="card-header" style="background-color: #4ECDC4; color: white; display: flex; justify-content: space-between; align-items: center;">
+            <span>📅 星期一 (Monday)</span>
+            <span id="monday-count" class="tag" style="background: white; color: #4ECDC4;">0 個動作</span>
+          </div>
+          <div class="card-body">
+            <div id="monday-exercises" class="exercises-list">
+              <!-- 動態生成 -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 週二 -->
+        <div class="card mb-3">
+          <div class="card-header" style="background-color: #FF6B6B; color: white; display: flex; justify-content: space-between; align-items: center;">
+            <span>📅 星期二 (Tuesday)</span>
+            <span id="tuesday-count" class="tag" style="background: white; color: #FF6B6B;">0 個動作</span>
+          </div>
+          <div class="card-body">
+            <div id="tuesday-exercises" class="exercises-list">
+              <!-- 動態生成 -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 週三 -->
+        <div class="card mb-3">
+          <div class="card-header" style="background-color: #45B7D1; color: white; display: flex; justify-content: space-between; align-items: center;">
+            <span>📅 星期三 (Wednesday)</span>
+            <span id="wednesday-count" class="tag" style="background: white; color: #45B7D1;">0 個動作</span>
+          </div>
+          <div class="card-body">
+            <div id="wednesday-exercises" class="exercises-list">
+              <!-- 動態生成 -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 週四 -->
+        <div class="card mb-3">
+          <div class="card-header" style="background-color: #FFA07A; color: white; display: flex; justify-content: space-between; align-items: center;">
+            <span>📅 星期四 (Thursday)</span>
+            <span id="thursday-count" class="tag" style="background: white; color: #FFA07A;">0 個動作</span>
+          </div>
+          <div class="card-body">
+            <div id="thursday-exercises" class="exercises-list">
+              <!-- 動態生成 -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 週五 -->
+        <div class="card mb-3">
+          <div class="card-header" style="background-color: #98D8C8; color: white; display: flex; justify-content: space-between; align-items: center;">
+            <span>📅 星期五 (Friday)</span>
+            <span id="friday-count" class="tag" style="background: white; color: #98D8C8;">0 個動作</span>
+          </div>
+          <div class="card-body">
+            <div id="friday-exercises" class="exercises-list">
+              <!-- 動態生成 -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 週六 -->
+        <div class="card mb-3">
+          <div class="card-header" style="background-color: #F7DC6F; color: white; display: flex; justify-content: space-between; align-items: center;">
+            <span>📅 星期六 (Saturday)</span>
+            <span id="saturday-count" class="tag" style="background: white; color: #F7DC6F;">0 個動作</span>
+          </div>
+          <div class="card-body">
+            <div id="saturday-exercises" class="exercises-list">
+              <!-- 動態生成 -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 週日 -->
+        <div class="card mb-3">
+          <div class="card-header" style="background-color: #BB8FCE; color: white; display: flex; justify-content: space-between; align-items: center;">
+            <span>📅 星期日 (Sunday)</span>
+            <span id="sunday-count" class="tag" style="background: white; color: #BB8FCE;">0 個動作</span>
+          </div>
+          <div class="card-body">
+            <div id="sunday-exercises" class="exercises-list">
+              <!-- 動態生成 -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 引入 JavaScript -->
+  <script src="../js/api.js"></script>
+  <script>
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    const dayNames = {
+      monday: '星期一',
+      tuesday: '星期二',
+      wednesday: '星期三',
+      thursday: '星期四',
+      friday: '星期五',
+      saturday: '星期六',
+      sunday: '星期日'
+    };
+
+    // 頁面載入完成後執行
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadWeeklyPlan();
+    });
+
+    // 載入每週計畫
+    async function loadWeeklyPlan() {
+      try {
+        const plan = await fetchWeeklyPlan();
+        
+        if (!plan) {
+          alert('載入計畫失敗！');
+          return;
+        }
+        
+        renderWeeklyPlan(plan);
+        
+        // 隱藏載入中，顯示計畫
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('weekly-plan').classList.remove('hidden');
+        
+      } catch (error) {
+        console.error('載入計畫失敗:', error);
+        document.getElementById('loading').innerHTML = `
+          <p style="color: #dc3545;">載入失敗，請重新整理頁面</p>
+        `;
+      }
+    }
+
+    // 渲染每週計畫
+    function renderWeeklyPlan(plan) {
+      days.forEach(day => {
+        const exercises = plan.weeklyPlan[day] || [];
+        const container = document.getElementById(`${day}-exercises`);
+        const countElement = document.getElementById(`${day}-count`);
+        
+        // 更新計數
+        countElement.textContent = `${exercises.length} 個動作`;
+        
+        // 如果沒有動作
+        if (exercises.length === 0) {
+          container.innerHTML = `
+            <p class="text-center" style="color: #999; padding: 2rem;">
+              還沒有安排動作<br>
+              <a href="exercise-library.html" style="color: var(--primary-color);">前往動作資料庫</a>
+            </p>
+          `;
+          return;
+        }
+        
+        // 渲染動作列表
+        container.innerHTML = '';
+        exercises.forEach((item, index) => {
+          if (item.exerciseId) {
+            const exerciseCard = createExerciseCard(item, day, index);
+            container.appendChild(exerciseCard);
+          }
+        });
+      });
+    }
+
+    // 建立動作卡片
+    function createExerciseCard(item, day, index) {
+      const exercise = item.exerciseId;
+      const card = document.createElement('div');
+      card.className = 'exercise-item';
+      card.style.cssText = `
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        background: #f8f9fa;
+        border-radius: var(--radius-md);
+        transition: all 0.3s ease;
+      `;
+      
+      card.innerHTML = `
+        <div style="flex: 1;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+            <span style="font-weight: bold; color: var(--primary-color);">#${index + 1}</span>
+            <h4 style="margin: 0;">${exercise.name || '未知動作'}</h4>
+          </div>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <span class="tag tag-primary">${exercise.targetMuscle || ''}</span>
+            <span class="tag tag-warning">${exercise.difficulty || ''}</span>
+            <span class="tag tag-info">${exercise.equipment || ''}</span>
+            <span class="tag tag-success">${item.sets || 3} 組 × ${item.reps || 10} 次</span>
+          </div>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <button class="btn btn-outline" onclick="viewExercise('${exercise._id}')" style="padding: 0.5rem 1rem;">
+            查看
+          </button>
+          <button class="btn btn-danger" onclick="removeExercise('${exercise._id}', '${day}')" style="padding: 0.5rem 1rem;">
+            移除
+          </button>
+        </div>
+      `;
+      
+      // hover 效果
+      card.addEventListener('mouseenter', () => {
+        card.style.transform = 'translateX(5px)';
+        card.style.boxShadow = 'var(--shadow-md)';
+      });
+      
+      card.addEventListener('mouseleave', () => {
+        card.style.transform = 'translateX(0)';
+        card.style.boxShadow = 'none';
+      });
+      
+      return card;
+    }
+
+    // 查看動作詳情
+    function viewExercise(exerciseId) {
+      window.location.href = `exercise-detail.html?id=${exerciseId}`;
+    }
+
+    // 移除動作
+    async function removeExercise(exerciseId, day) {
+      const confirmRemove = confirm(`確定要從${dayNames[day]}移除這個動作嗎？`);
+      
+      if (!confirmRemove) return;
+      
+      const result = await removeExerciseFromPlan(exerciseId, day);
+      
+      if (result) {
+        // 重新載入計畫
+        await loadWeeklyPlan();
+      }
+    }
+  </script>
+
+  <style>
+    .hidden {
+      display: none;
+    }
+
+    .exercises-list {
+      min-height: 100px;
+    }
+
+    .exercise-item {
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</body>
+</html>
