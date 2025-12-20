@@ -1,5 +1,5 @@
 // API 基礎 URL
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = 'https://final-project-tejz.onrender.com/api';
 
 // ===== 工具函數 =====
 
