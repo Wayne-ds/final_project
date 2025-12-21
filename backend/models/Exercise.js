@@ -35,12 +35,12 @@ const exerciseSchema = new mongoose.Schema({
   tips: [{
     type: String
   }],
-  // 🆕 自訂動作標記
+  // 自訂動作標記
   isCustom: {
     type: Boolean,
     default: false
   },
-  // 🆕 創建者 ID（未來用戶系統用）
+  // 創建者 ID
   createdBy: {
     type: String,
     default: 'default-user'
@@ -55,10 +55,20 @@ const exerciseSchema = new mongoose.Schema({
   }
 });
 
-// 更新時自動設定 updatedAt
-exerciseSchema.pre('save', function(next) {
+/**
+ * 🆕 儲存前自動處理邏輯
+ * 修正點：改為 async function 並移除 next()
+ */
+exerciseSchema.pre('save', async function() {
+  // 1. 更新時間戳記
   this.updatedAt = Date.now();
-  next();
+
+  // 2. 額外防錯：確保自訂動作的名稱不會有前後多餘空格
+  if (this.name) {
+    this.name = this.name.trim();
+  }
+  
+  // ✅ 在 Async 模式下，執行完畢會自動 next，不需呼叫 next()
 });
 
 // 索引優化

@@ -1,20 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const Exercise = require('../models/Exercise');
+const { authMiddleware, optionalAuthMiddleware } = require('../middleware/auth');
 
-// 獲取所有動作（包含自訂）
-router.get('/', async (req, res) => {
+// 獲取所有動作（使用選擇性認證）
+router.get('/', optionalAuthMiddleware, async (req, res) => {
   try {
-    const { userId = 'default-user', includeCustom = 'true' } = req.query;
+    const userId = req.userId; // 從 middleware 取得
+    const { includeCustom = 'true' } = req.query;
     
     let query = {};
     
-    // 如果要包含自訂動作
     if (includeCustom === 'true') {
       query = {
         $or: [
-          { isCustom: false }, // 預設動作
-          { isCustom: true, createdBy: userId } // 用戶自訂動作
+          { isCustom: false },
+          { isCustom: true, createdBy: userId }
         ]
       };
     } else {
@@ -29,6 +30,7 @@ router.get('/', async (req, res) => {
       exercises
     });
   } catch (error) {
+    console.error('獲取動作列表錯誤:', error);
     res.status(500).json({
       success: false,
       message: '獲取動作列表失敗',
@@ -54,6 +56,7 @@ router.get('/:id', async (req, res) => {
       exercise
     });
   } catch (error) {
+    console.error('獲取動作詳情錯誤:', error);
     res.status(500).json({
       success: false,
       message: '獲取動作詳情失敗',
@@ -62,9 +65,10 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// 🆕 新增自訂動作
-router.post('/custom', async (req, res) => {
+// 🆕 新增自訂動作（需要認證）
+router.post('/custom', authMiddleware, async (req, res) => {
   try {
+    const userId = req.userId; // 從 middleware 取得
     const { 
       name, 
       targetMuscle, 
@@ -73,8 +77,7 @@ router.post('/custom', async (req, res) => {
       instructions = [], 
       tips = [],
       videoUrl = '',
-      imageUrl = '',
-      userId = 'default-user'
+      imageUrl = ''
     } = req.body;
     
     // 驗證必填欄位
@@ -85,17 +88,43 @@ router.post('/custom', async (req, res) => {
       });
     }
     
+    // 驗證欄位值
+    const validMuscles = ['胸肌', '背肌', '腿部', '肩膀', '手臂', '核心'];
+    const validEquipment = ['啞鈴', '槓鈴', '機械', '徒手', '彈力帶', '壺鈴', '其他'];
+    const validDifficulty = ['初級', '中級', '高級'];
+    
+    if (!validMuscles.includes(targetMuscle)) {
+      return res.status(400).json({
+        success: false,
+        message: '無效的目標部位'
+      });
+    }
+    
+    if (!validEquipment.includes(equipment)) {
+      return res.status(400).json({
+        success: false,
+        message: '無效的器材類型'
+      });
+    }
+    
+    if (!validDifficulty.includes(difficulty)) {
+      return res.status(400).json({
+        success: false,
+        message: '無效的難度等級'
+      });
+    }
+    
     const exercise = new Exercise({
-      name,
+      name: name.trim(),
       targetMuscle,
       equipment,
       difficulty,
       instructions,
       tips,
-      videoUrl,
-      imageUrl,
+      videoUrl: videoUrl.trim(),
+      imageUrl: imageUrl.trim() || 'https://via.placeholder.com/300x200?text=Custom+Exercise',
       isCustom: true,
-      createdBy: userId
+      createdBy: userId // 使用 Token 中的 userId
     });
     
     await exercise.save();
@@ -106,6 +135,7 @@ router.post('/custom', async (req, res) => {
       exercise
     });
   } catch (error) {
+    console.error('新增自訂動作錯誤:', error);
     res.status(400).json({
       success: false,
       message: '新增自訂動作失敗',
@@ -114,10 +144,10 @@ router.post('/custom', async (req, res) => {
   }
 });
 
-// 🆕 更新自訂動作
-router.put('/custom/:id', async (req, res) => {
+// 🆕 更新自訂動作（需要認證）
+router.put('/custom/:id', authMiddleware, async (req, res) => {
   try {
-    const { userId = 'default-user' } = req.body;
+    const userId = req.userId;
     const exercise = await Exercise.findById(req.params.id);
     
     if (!exercise) {
@@ -139,7 +169,11 @@ router.put('/custom/:id', async (req, res) => {
     const allowedUpdates = ['name', 'targetMuscle', 'equipment', 'difficulty', 'instructions', 'tips', 'videoUrl', 'imageUrl'];
     allowedUpdates.forEach(field => {
       if (req.body[field] !== undefined) {
-        exercise[field] = req.body[field];
+        if (field === 'name' || field === 'videoUrl' || field === 'imageUrl') {
+          exercise[field] = req.body[field].trim();
+        } else {
+          exercise[field] = req.body[field];
+        }
       }
     });
     
@@ -151,6 +185,7 @@ router.put('/custom/:id', async (req, res) => {
       exercise
     });
   } catch (error) {
+    console.error('更新動作錯誤:', error);
     res.status(400).json({
       success: false,
       message: '更新動作失敗',
@@ -159,10 +194,10 @@ router.put('/custom/:id', async (req, res) => {
   }
 });
 
-// 🆕 刪除自訂動作
-router.delete('/custom/:id', async (req, res) => {
+// 🆕 刪除自訂動作（需要認證）
+router.delete('/custom/:id', authMiddleware, async (req, res) => {
   try {
-    const { userId = 'default-user' } = req.query;
+    const userId = req.userId;
     const exercise = await Exercise.findById(req.params.id);
     
     if (!exercise) {
@@ -187,6 +222,7 @@ router.delete('/custom/:id', async (req, res) => {
       message: '動作已刪除'
     });
   } catch (error) {
+    console.error('刪除動作錯誤:', error);
     res.status(500).json({
       success: false,
       message: '刪除失敗',
@@ -195,8 +231,8 @@ router.delete('/custom/:id', async (req, res) => {
   }
 });
 
-// 原有的新增動作 API (保留相容性)
-router.post('/', async (req, res) => {
+// 原有的新增動作 API (保留相容性，但現在需要認證)
+router.post('/', authMiddleware, async (req, res) => {
   try {
     const exercise = new Exercise(req.body);
     await exercise.save();
@@ -207,6 +243,7 @@ router.post('/', async (req, res) => {
       exercise
     });
   } catch (error) {
+    console.error('新增動作錯誤:', error);
     res.status(400).json({
       success: false,
       message: '動作新增失敗',

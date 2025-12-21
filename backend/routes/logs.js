@@ -1,45 +1,109 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const TrainingLog = require('../models/TrainingLog');
+const { authMiddleware, optionalAuthMiddleware } = require('../middleware/auth');
 
-// 新增訓練記錄
-router.post('/', async (req, res) => {
+// 新增訓練記錄（需要認證）
+router.post('/', authMiddleware, async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  
   try {
-    const { userId = 'default-user', exerciseId, weight, reps, sets, notes, date } = req.body;
+    const userId = req.userId; // 從 middleware 取得
+    const { exerciseId, weight, reps, sets, notes, date } = req.body;
     
+    // 驗證必填欄位
+    if (!exerciseId || weight === undefined || !reps || !sets) {
+      return res.status(400).json({
+        success: false,
+        message: '請填寫所有必填欄位'
+      });
+    }
+    
+    // 驗證數值範圍
+    if (weight < 0 || weight > 500) {
+      return res.status(400).json({
+        success: false,
+        message: '重量必須在 0-500kg 之間'
+      });
+    }
+    
+    if (reps < 1 || reps > 100) {
+      return res.status(400).json({
+        success: false,
+        message: '次數必須在 1-100 之間'
+      });
+    }
+    
+    if (sets < 1 || sets > 20) {
+      return res.status(400).json({
+        success: false,
+        message: '組數必須在 1-20 之間'
+      });
+    }
+    
+    // 建立訓練記錄
     const log = new TrainingLog({
       userId,
       exerciseId,
-      weight,
-      reps,
-      sets,
-      notes,
+      weight: parseFloat(weight),
+      reps: parseInt(reps),
+      sets: parseInt(sets),
+      notes: notes || '',
       date: date || Date.now()
     });
     
-    await log.save();
+    await log.save({ session });
+    
+    // 檢查並更新 PR
+    const previousPR = await TrainingLog.findOne({
+      userId,
+      exerciseId,
+      isPR: true,
+      _id: { $ne: log._id }
+    }).session(session);
+    
+    if (!previousPR || log.weight > previousPR.weight) {
+      log.isPR = true;
+      await log.save({ session });
+      
+      // 取消之前的 PR 標記
+      if (previousPR) {
+        previousPR.isPR = false;
+        await previousPR.save({ session });
+      }
+    }
+    
+    await session.commitTransaction();
     
     // Populate exercise 資訊
     await log.populate('exerciseId');
     
     res.status(201).json({
       success: true,
-      message: '記錄成功',
+      message: log.isPR ? '🎉 恭喜！這是新的 PR 記錄！' : '記錄成功',
       log
     });
   } catch (error) {
+    await session.abortTransaction();
+    console.error('新增記錄錯誤:', error);
     res.status(400).json({
       success: false,
       message: '記錄失敗',
       error: error.message
     });
+  } finally {
+    session.endSession();
   }
 });
 
-// 🆕 更新訓練記錄
-router.put('/:id', async (req, res) => {
+// 更新訓練記錄（需要認證）
+router.put('/:id', authMiddleware, async (req, res) => {
   try {
+    const userId = req.userId;
     const { weight, reps, sets, notes } = req.body;
+    
     const log = await TrainingLog.findById(req.params.id);
     
     if (!log) {
@@ -49,10 +113,45 @@ router.put('/:id', async (req, res) => {
       });
     }
     
+    // 檢查權限
+    if (log.userId !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: '無權限編輯此記錄'
+      });
+    }
+    
     // 更新欄位
-    if (weight !== undefined) log.weight = weight;
-    if (reps !== undefined) log.reps = reps;
-    if (sets !== undefined) log.sets = sets;
+    if (weight !== undefined) {
+      if (weight < 0 || weight > 500) {
+        return res.status(400).json({
+          success: false,
+          message: '重量必須在 0-500kg 之間'
+        });
+      }
+      log.weight = parseFloat(weight);
+    }
+    
+    if (reps !== undefined) {
+      if (reps < 1 || reps > 100) {
+        return res.status(400).json({
+          success: false,
+          message: '次數必須在 1-100 之間'
+        });
+      }
+      log.reps = parseInt(reps);
+    }
+    
+    if (sets !== undefined) {
+      if (sets < 1 || sets > 20) {
+        return res.status(400).json({
+          success: false,
+          message: '組數必須在 1-20 之間'
+        });
+      }
+      log.sets = parseInt(sets);
+    }
+    
     if (notes !== undefined) log.notes = notes;
     
     // 標記為已編輯
@@ -68,6 +167,7 @@ router.put('/:id', async (req, res) => {
       log
     });
   } catch (error) {
+    console.error('更新記錄錯誤:', error);
     res.status(400).json({
       success: false,
       message: '更新失敗',
@@ -76,10 +176,11 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// 獲取所有記錄
-router.get('/all', async (req, res) => {
+// 獲取所有記錄（使用選擇性認證）
+router.get('/all', optionalAuthMiddleware, async (req, res) => {
   try {
-    const userId = req.query.userId || 'default-user';
+    const userId = req.userId;
+    
     const logs = await TrainingLog.find({ userId })
       .populate('exerciseId')
       .sort({ date: -1 });
@@ -90,6 +191,7 @@ router.get('/all', async (req, res) => {
       logs
     });
   } catch (error) {
+    console.error('獲取記錄錯誤:', error);
     res.status(500).json({
       success: false,
       message: '獲取記錄失敗',
@@ -98,12 +200,11 @@ router.get('/all', async (req, res) => {
   }
 });
 
-// 🆕 獲取 PR 記錄
-router.get('/pr', async (req, res) => {
+// 獲取 PR 記錄（使用選擇性認證）
+router.get('/pr', optionalAuthMiddleware, async (req, res) => {
   try {
-    const userId = req.query.userId || 'default-user';
+    const userId = req.userId;
     
-    // 獲取所有 PR 記錄
     const prLogs = await TrainingLog.find({ 
       userId, 
       isPR: true 
@@ -117,6 +218,7 @@ router.get('/pr', async (req, res) => {
       logs: prLogs
     });
   } catch (error) {
+    console.error('獲取 PR 記錄錯誤:', error);
     res.status(500).json({
       success: false,
       message: '獲取 PR 記錄失敗',
@@ -125,13 +227,12 @@ router.get('/pr', async (req, res) => {
   }
 });
 
-// 🆕 獲取特定動作的 PR
-router.get('/pr/:exerciseId', async (req, res) => {
+// 獲取特定動作的 PR（使用選擇性認證）
+router.get('/pr/:exerciseId', optionalAuthMiddleware, async (req, res) => {
   try {
-    const userId = req.query.userId || 'default-user';
+    const userId = req.userId;
     const { exerciseId } = req.params;
     
-    // 找出該動作的最高重量記錄
     const prLog = await TrainingLog.findOne({
       userId,
       exerciseId,
@@ -153,6 +254,7 @@ router.get('/pr/:exerciseId', async (req, res) => {
       pr: prLog
     });
   } catch (error) {
+    console.error('獲取 PR 錯誤:', error);
     res.status(500).json({
       success: false,
       message: '獲取 PR 失敗',
@@ -161,13 +263,12 @@ router.get('/pr/:exerciseId', async (req, res) => {
   }
 });
 
-// 🆕 計算 1RM（基於歷史記錄）
-router.get('/1rm/:exerciseId', async (req, res) => {
+// 計算 1RM（使用選擇性認證）
+router.get('/1rm/:exerciseId', optionalAuthMiddleware, async (req, res) => {
   try {
-    const userId = req.query.userId || 'default-user';
+    const userId = req.userId;
     const { exerciseId } = req.params;
     
-    // 找出該動作的最高 1RM 估算
     const logs = await TrainingLog.find({
       userId,
       exerciseId
@@ -200,6 +301,7 @@ router.get('/1rm/:exerciseId', async (req, res) => {
       }))
     });
   } catch (error) {
+    console.error('計算 1RM 錯誤:', error);
     res.status(500).json({
       success: false,
       message: '計算 1RM 失敗',
@@ -208,11 +310,18 @@ router.get('/1rm/:exerciseId', async (req, res) => {
   }
 });
 
-// 依日期獲取記錄
-router.get('/date/:date', async (req, res) => {
+// 依日期獲取記錄（使用選擇性認證）
+router.get('/date/:date', optionalAuthMiddleware, async (req, res) => {
   try {
-    const userId = req.query.userId || 'default-user';
+    const userId = req.userId;
     const targetDate = new Date(req.params.date);
+    
+    if (isNaN(targetDate.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: '無效的日期格式'
+      });
+    }
     
     const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
     const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
@@ -231,6 +340,7 @@ router.get('/date/:date', async (req, res) => {
       logs
     });
   } catch (error) {
+    console.error('獲取記錄錯誤:', error);
     res.status(500).json({
       success: false,
       message: '獲取記錄失敗',
@@ -239,10 +349,11 @@ router.get('/date/:date', async (req, res) => {
   }
 });
 
-// 刪除記錄
-router.delete('/:id', async (req, res) => {
+// 刪除記錄（需要認證）
+router.delete('/:id', authMiddleware, async (req, res) => {
   try {
-    const log = await TrainingLog.findByIdAndDelete(req.params.id);
+    const userId = req.userId;
+    const log = await TrainingLog.findById(req.params.id);
     
     if (!log) {
       return res.status(404).json({
@@ -251,11 +362,22 @@ router.delete('/:id', async (req, res) => {
       });
     }
     
+    // 檢查權限
+    if (log.userId !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: '無權限刪除此記錄'
+      });
+    }
+    
+    await TrainingLog.findByIdAndDelete(req.params.id);
+    
     res.json({
       success: true,
       message: '記錄已刪除'
     });
   } catch (error) {
+    console.error('刪除記錄錯誤:', error);
     res.status(500).json({
       success: false,
       message: '刪除失敗',
@@ -264,10 +386,10 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// 獲取特定動作的記錄
-router.get('/exercise/:exerciseId', async (req, res) => {
+// 獲取特定動作的記錄（使用選擇性認證）
+router.get('/exercise/:exerciseId', optionalAuthMiddleware, async (req, res) => {
   try {
-    const userId = req.query.userId || 'default-user';
+    const userId = req.userId;
     const logs = await TrainingLog.find({
       userId,
       exerciseId: req.params.exerciseId
@@ -279,6 +401,7 @@ router.get('/exercise/:exerciseId', async (req, res) => {
       logs
     });
   } catch (error) {
+    console.error('獲取記錄錯誤:', error);
     res.status(500).json({
       success: false,
       message: '獲取記錄失敗',

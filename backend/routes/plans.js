@@ -1,11 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const WorkoutPlan = require('../models/WorkoutPlan');
+const { authMiddleware, optionalAuthMiddleware } = require('../middleware/auth');
 
-// 獲取每週計畫
-router.get('/weekly', async (req, res) => {
+// 獲取每週計畫（使用選擇性認證）
+router.get('/weekly', optionalAuthMiddleware, async (req, res) => {
   try {
-    const userId = req.query.userId || 'default-user';
+    const userId = req.userId; // 從 middleware 取得
+    
     let plan = await WorkoutPlan.findOne({ userId })
       .populate('weeklyPlan.monday.exerciseId')
       .populate('weeklyPlan.tuesday.exerciseId')
@@ -16,6 +18,7 @@ router.get('/weekly', async (req, res) => {
       .populate('weeklyPlan.sunday.exerciseId');
     
     if (!plan) {
+      // 建立空白計畫
       plan = new WorkoutPlan({
         userId,
         weeklyPlan: {
@@ -36,6 +39,7 @@ router.get('/weekly', async (req, res) => {
       plan
     });
   } catch (error) {
+    console.error('獲取計畫錯誤:', error);
     res.status(500).json({
       success: false,
       message: '獲取計畫失敗',
@@ -44,10 +48,18 @@ router.get('/weekly', async (req, res) => {
   }
 });
 
-// 更新計畫
-router.put('/update', async (req, res) => {
+// 更新計畫（需要認證）
+router.put('/update', authMiddleware, async (req, res) => {
   try {
-    const { userId = 'default-user', weeklyPlan } = req.body;
+    const userId = req.userId;
+    const { weeklyPlan } = req.body;
+    
+    if (!weeklyPlan) {
+      return res.status(400).json({
+        success: false,
+        message: '請提供計畫資料'
+      });
+    }
     
     let plan = await WorkoutPlan.findOne({ userId });
     
@@ -55,6 +67,7 @@ router.put('/update', async (req, res) => {
       plan = new WorkoutPlan({ userId, weeklyPlan });
     } else {
       plan.weeklyPlan = weeklyPlan;
+      plan.updatedAt = Date.now();
     }
     
     await plan.save();
@@ -65,6 +78,7 @@ router.put('/update', async (req, res) => {
       plan
     });
   } catch (error) {
+    console.error('更新計畫錯誤:', error);
     res.status(400).json({
       success: false,
       message: '計畫更新失敗',
@@ -73,25 +87,65 @@ router.put('/update', async (req, res) => {
   }
 });
 
-// 加入動作到計畫
-router.post('/add', async (req, res) => {
+// 加入動作到計畫（需要認證）
+router.post('/add', authMiddleware, async (req, res) => {
   try {
-    const { userId = 'default-user', day, exerciseId, sets = 3, reps = 10 } = req.body;
+    const userId = req.userId;
+    const { day, exerciseId, sets = 3, reps = 10 } = req.body;
     
-    if (!['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].includes(day)) {
+    // 驗證日期
+    const validDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    if (!validDays.includes(day)) {
       return res.status(400).json({
         success: false,
         message: '無效的日期'
       });
     }
     
+    // 驗證動作 ID
+    if (!exerciseId) {
+      return res.status(400).json({
+        success: false,
+        message: '請提供動作 ID'
+      });
+    }
+    
+    // 驗證組數和次數
+    if (sets < 1 || sets > 20) {
+      return res.status(400).json({
+        success: false,
+        message: '組數必須在 1-20 之間'
+      });
+    }
+    
+    if (reps < 1 || reps > 100) {
+      return res.status(400).json({
+        success: false,
+        message: '次數必須在 1-100 之間'
+      });
+    }
+    
     let plan = await WorkoutPlan.findOne({ userId });
     
     if (!plan) {
-      plan = new WorkoutPlan({ userId });
+      plan = new WorkoutPlan({ 
+        userId,
+        weeklyPlan: {
+          monday: [],
+          tuesday: [],
+          wednesday: [],
+          thursday: [],
+          friday: [],
+          saturday: [],
+          sunday: []
+        }
+      });
     }
     
-    const exists = plan.weeklyPlan[day].some(item => item.exerciseId.toString() === exerciseId);
+    // 檢查是否已存在
+    const exists = plan.weeklyPlan[day].some(
+      item => item.exerciseId.toString() === exerciseId
+    );
     
     if (exists) {
       return res.status(400).json({
@@ -102,11 +156,12 @@ router.post('/add', async (req, res) => {
     
     plan.weeklyPlan[day].push({
       exerciseId,
-      sets,
-      reps,
+      sets: parseInt(sets),
+      reps: parseInt(reps),
       order: plan.weeklyPlan[day].length
     });
     
+    plan.updatedAt = Date.now();
     await plan.save();
     
     res.json({
@@ -115,6 +170,7 @@ router.post('/add', async (req, res) => {
       plan
     });
   } catch (error) {
+    console.error('加入動作錯誤:', error);
     res.status(400).json({
       success: false,
       message: '加入失敗',
@@ -123,10 +179,27 @@ router.post('/add', async (req, res) => {
   }
 });
 
-// 從計畫移除動作
-router.delete('/remove', async (req, res) => {
+// 從計畫移除動作（需要認證）
+router.delete('/remove', authMiddleware, async (req, res) => {
   try {
-    const { userId = 'default-user', day, exerciseId } = req.body;
+    const userId = req.userId;
+    const { day, exerciseId } = req.body;
+    
+    // 驗證日期
+    const validDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    if (!validDays.includes(day)) {
+      return res.status(400).json({
+        success: false,
+        message: '無效的日期'
+      });
+    }
+    
+    if (!exerciseId) {
+      return res.status(400).json({
+        success: false,
+        message: '請提供動作 ID'
+      });
+    }
     
     const plan = await WorkoutPlan.findOne({ userId });
     
@@ -137,10 +210,12 @@ router.delete('/remove', async (req, res) => {
       });
     }
     
+    // 移除動作
     plan.weeklyPlan[day] = plan.weeklyPlan[day].filter(
       item => item.exerciseId.toString() !== exerciseId
     );
     
+    plan.updatedAt = Date.now();
     await plan.save();
     
     res.json({
@@ -149,6 +224,7 @@ router.delete('/remove', async (req, res) => {
       plan
     });
   } catch (error) {
+    console.error('移除動作錯誤:', error);
     res.status(400).json({
       success: false,
       message: '移除失敗',
