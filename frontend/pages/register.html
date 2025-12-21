@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>註冊 - FitMotion</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <a href="../index.html" class="navbar-brand">💪 FitMotion</a>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="container" style="max-width: 500px;">
+      <div class="card">
+        <h1 class="text-center mb-3">📝 註冊</h1>
+        
+        <form id="register-form">
+          <div class="form-group">
+            <label class="form-label">用戶名 *</label>
+            <input type="text" id="username" class="form-input" placeholder="3-20個字元" required minlength="3" maxlength="20" autofocus>
+            <small style="color: #666;">用於登入，不可修改</small>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">電子郵件 *</label>
+            <input type="email" id="email" class="form-input" placeholder="example@email.com" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">顯示名稱</label>
+            <input type="text" id="displayName" class="form-input" placeholder="在頁面上顯示的名稱(選填)">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">密碼 *</label>
+            <input type="password" id="password" class="form-input" placeholder="至少6個字元" required minlength="6">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">確認密碼 *</label>
+            <input type="password" id="confirmPassword" class="form-input" placeholder="再次輸入密碼" required>
+            <div id="password-feedback" class="form-feedback"></div>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; margin-bottom: 1rem;">
+            註冊
+          </button>
+
+          <p class="text-center" style="color: #666;">
+            已有帳號？
+            <a href="login.html" style="color: var(--primary-color);">立即登入</a>
+          </p>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/auth-api.js"></script>
+  <script>
+    // 🆕 初始化認證狀態
+    document.addEventListener('DOMContentLoaded', async () => {
+      await initAuthState();
+    });
+
+    // 密碼確認驗證
+    const passwordInput = document.getElementById('password');
+    const confirmPasswordInput = document.getElementById('confirmPassword');
+    const feedback = document.getElementById('password-feedback');
+
+    confirmPasswordInput.addEventListener('input', () => {
+      if (confirmPasswordInput.value && passwordInput.value !== confirmPasswordInput.value) {
+        feedback.textContent = '❌ 密碼不一致';
+        feedback.className = 'form-feedback error';
+        confirmPasswordInput.classList.add('error');
+      } else {
+        feedback.textContent = '';
+        confirmPasswordInput.classList.remove('error');
+      }
+    });
+
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const username = document.getElementById('username').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const displayName = document.getElementById('displayName').value.trim();
+      const password = document.getElementById('password').value;
+      const confirmPassword = confirmPasswordInput.value;
+      
+      if (password !== confirmPassword) {
+        showNotification('兩次密碼輸入不一致', 'error');
+        return;
+      }
+      
+      const result = await register(username, email, password, displayName);
+      
+      if (result) {
+        setTimeout(() => {
+          window.location.href = '../index.html';
+        }, 1000);
+      }
+    });
+  </script>
+</body>
+</html>

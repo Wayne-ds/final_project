@@ -35,25 +35,21 @@
                   <select id="exercise-select" class="form-select" required>
                     <option value="">-- 請選擇動作 --</option>
                   </select>
-                  <div id="exercise-feedback" class="form-feedback"></div>
                 </div>
 
                 <div class="form-group">
                   <label class="form-label">重量 (kg) *</label>
                   <input type="number" id="weight-input" class="form-input" placeholder="例如：60" min="0" max="500" step="0.5" required>
-                  <div id="weight-feedback" class="form-feedback"></div>
                 </div>
 
                 <div class="form-group">
                   <label class="form-label">次數 (reps) *</label>
                   <input type="number" id="reps-input" class="form-input" placeholder="例如：10" min="1" max="100" required>
-                  <div id="reps-feedback" class="form-feedback"></div>
                 </div>
 
                 <div class="form-group">
                   <label class="form-label">組數 (sets) *</label>
                   <input type="number" id="sets-input" class="form-input" placeholder="例如：3" min="1" max="20" required>
-                  <div id="sets-feedback" class="form-feedback"></div>
                 </div>
 
                 <div class="form-group">
@@ -64,7 +60,6 @@
                 <button type="submit" class="btn btn-primary" style="width: 100%;">✅ 送出記錄</button>
               </form>
 
-              <!-- 🆕 1RM 計算器 -->
               <div class="card mt-3" style="background: #e3f7f6;">
                 <div style="font-weight: bold; margin-bottom: 0.5rem;">🧮 1RM 計算器</div>
                 <div style="font-size: 0.9rem; color: #666;">
@@ -88,7 +83,6 @@
         </div>
       </div>
 
-      <!-- 🆕 PR 記錄 -->
       <div class="card mt-4">
         <div class="card-header">🏆 個人最佳記錄 (PR)</div>
         <div class="card-body">
@@ -111,7 +105,7 @@
     </div>
   </main>
 
-  <!-- 🆕 編輯記錄 Modal -->
+  <!-- 編輯記錄 Modal -->
   <div id="edit-modal" class="modal" style="display: none;">
     <div class="modal-content">
       <div class="modal-header">
@@ -157,10 +151,18 @@
   </div>
 
   <script src="../js/api.js"></script>
+  <script src="../js/auth-api.js"></script>
   <script>
     let allExercises = [];
 
     document.addEventListener('DOMContentLoaded', async () => {
+      // 🆕 檢查登入狀態
+      const isAuth = await requireAuth();
+      if (!isAuth) return;
+      
+      // 🆕 更新導航列
+      updateNavbarUser();
+      
       await loadExercises();
       await loadTodayLogs();
       await loadPRLogs();
@@ -187,24 +189,23 @@
       allExercises.forEach(exercise => {
         const option = document.createElement('option');
         option.value = exercise._id;
+        // 🆕 使用 textContent 防 XSS
         option.textContent = `${exercise.name} (${exercise.targetMuscle})`;
         select.appendChild(option);
       });
     }
 
     async function loadTodayLogs() {
-      const today = new Date().toISOString().split('T')[0];
+      const today = formatDate(new Date(), 'ISO');
       const logs = await fetchLogsByDate(today);
       renderTodayLogs(logs);
     }
 
-    // 🆕 載入 PR 記錄
     async function loadPRLogs() {
       const prLogs = await fetchPRLogs();
       renderPRLogs(prLogs);
     }
 
-    // 🆕 渲染 PR 記錄
     function renderPRLogs(logs) {
       const container = document.getElementById('pr-logs');
       
@@ -218,19 +219,26 @@
         const prCard = document.createElement('div');
         prCard.style.cssText = 'padding: 1rem; margin-bottom: 0.5rem; background: #fff3cd; border-radius: var(--radius-md); border-left: 4px solid #ffc107;';
         
-        prCard.innerHTML = `
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div>
-              <h4 style="margin: 0 0 0.5rem 0;">🏆 ${log.exerciseId.name}</h4>
-              <div style="display: flex; gap: 0.5rem;">
-                <span class="tag tag-warning">💪 ${log.weight} kg</span>
-                <span class="tag tag-success">🔢 ${log.sets} 組 × ${log.reps} 次</span>
-                <span class="tag tag-info">📊 1RM: ${log.estimated1RM} kg</span>
-              </div>
-              <small style="color: #666;">達成日期: ${new Date(log.date).toLocaleDateString('zh-TW')}</small>
-            </div>
-          </div>
+        const exerciseName = document.createElement('h4');
+        exerciseName.textContent = `🏆 ${log.exerciseId.name}`;
+        exerciseName.style.margin = '0 0 0.5rem 0';
+        
+        prCard.appendChild(exerciseName);
+        
+        const detailsDiv = document.createElement('div');
+        detailsDiv.style.display = 'flex';
+        detailsDiv.style.gap = '0.5rem';
+        detailsDiv.innerHTML = `
+          <span class="tag tag-warning">💪 ${log.weight} kg</span>
+          <span class="tag tag-success">🔢 ${log.sets} 組 × ${log.reps} 次</span>
+          <span class="tag tag-info">📊 1RM: ${log.estimated1RM} kg</span>
         `;
+        prCard.appendChild(detailsDiv);
+        
+        const dateSmall = document.createElement('small');
+        dateSmall.textContent = `達成日期: ${formatDate(log.date)}`;
+        dateSmall.style.color = '#666';
+        prCard.appendChild(dateSmall);
         
         container.appendChild(prCard);
       });
@@ -257,36 +265,72 @@
       card.style.cssText = 'padding: 1rem; margin-bottom: 0.5rem; background: #f8f9fa; border-radius: var(--radius-md); border-left: 4px solid var(--primary-color);';
       
       const exerciseName = log.exerciseId ? log.exerciseId.name : '未知動作';
-      const time = new Date(log.date).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+      const time = formatDate(log.date, 'time');
       const prBadge = log.isPR ? '<span class="tag tag-warning">🏆 PR</span>' : '';
       const editedBadge = log.isEdited ? '<small style="color: #999;">(已編輯)</small>' : '';
       
-      card.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: start;">
-          <div style="flex: 1;">
-            <h4 style="margin: 0 0 0.5rem 0;">${exerciseName} ${prBadge} ${editedBadge}</h4>
-            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-              <span class="tag tag-primary">💪 ${log.weight} kg</span>
-              <span class="tag tag-success">🔢 ${log.sets} 組 × ${log.reps} 次</span>
-              <span class="tag tag-info">📊 Volume: ${log.volume || (log.weight * log.reps * log.sets)}</span>
-              <span class="tag tag-secondary">🎯 1RM: ${log.estimated1RM || calculateEpley1RM(log.weight, log.reps)} kg</span>
-              <span class="tag tag-info">🕐 ${time}</span>
-            </div>
-            ${log.notes ? `<p style="margin-top: 0.5rem; color: #666; font-size: 0.9rem;">📝 ${log.notes}</p>` : ''}
-          </div>
-          ${showActions ? `
-            <div style="display: flex; gap: 0.5rem;">
-              <button class="btn btn-outline" onclick="openEditModal('${log._id}', ${JSON.stringify(log).replace(/"/g, '&quot;')})" style="padding: 0.5rem;">編輯</button>
-              <button class="btn btn-danger" onclick="deleteLogRecord('${log._id}')" style="padding: 0.5rem;">刪除</button>
-            </div>
-          ` : ''}
-        </div>
-      `;
+      const titleDiv = document.createElement('div');
+      titleDiv.style.display = 'flex';
+      titleDiv.style.justifyContent = 'space-between';
+      titleDiv.style.alignItems = 'start';
       
+      const contentDiv = document.createElement('div');
+      contentDiv.style.flex = '1';
+      
+      const nameH4 = document.createElement('h4');
+      nameH4.style.margin = '0 0 0.5rem 0';
+      nameH4.textContent = exerciseName + ' ';
+      nameH4.innerHTML += prBadge + ' ' + editedBadge;
+      contentDiv.appendChild(nameH4);
+      
+      const tagsDiv = document.createElement('div');
+      tagsDiv.style.display = 'flex';
+      tagsDiv.style.gap = '0.5rem';
+      tagsDiv.style.flexWrap = 'wrap';
+      tagsDiv.innerHTML = `
+        <span class="tag tag-primary">💪 ${log.weight} kg</span>
+        <span class="tag tag-success">🔢 ${log.sets} 組 × ${log.reps} 次</span>
+        <span class="tag tag-info">📊 Volume: ${log.volume || (log.weight * log.reps * log.sets)}</span>
+        <span class="tag tag-secondary">🎯 1RM: ${log.estimated1RM || calculateEpley1RM(log.weight, log.reps)} kg</span>
+        <span class="tag tag-info">🕐 ${escapeHtml(time)}</span>
+      `;
+      contentDiv.appendChild(tagsDiv);
+      
+      if (log.notes) {
+        const notesP = document.createElement('p');
+        notesP.style.cssText = 'margin-top: 0.5rem; color: #666; font-size: 0.9rem;';
+        notesP.textContent = `📝 ${log.notes}`;
+        contentDiv.appendChild(notesP);
+      }
+      
+      titleDiv.appendChild(contentDiv);
+      
+      if (showActions) {
+        const actionsDiv = document.createElement('div');
+        actionsDiv.style.display = 'flex';
+        actionsDiv.style.gap = '0.5rem';
+        
+        const editBtn = document.createElement('button');
+        editBtn.className = 'btn btn-outline';
+        editBtn.style.padding = '0.5rem';
+        editBtn.textContent = '編輯';
+        editBtn.onclick = () => openEditModal(log._id, log);
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'btn btn-danger';
+        deleteBtn.style.padding = '0.5rem';
+        deleteBtn.textContent = '刪除';
+        deleteBtn.onclick = () => deleteLogRecord(log._id);
+        
+        actionsDiv.appendChild(editBtn);
+        actionsDiv.appendChild(deleteBtn);
+        titleDiv.appendChild(actionsDiv);
+      }
+      
+      card.appendChild(titleDiv);
       return card;
     }
 
-    // 🆕 1RM 計算器
     function setup1RMCalculator() {
       const weightInput = document.getElementById('weight-input');
       const repsInput = document.getElementById('reps-input');
@@ -310,7 +354,6 @@
       repsInput.addEventListener('input', updateCalculator);
     }
 
-    // 🆕 編輯 Modal 功能
     function openEditModal(logId, log) {
       document.getElementById('edit-log-id').value = logId;
       document.getElementById('edit-exercise-name').value = log.exerciseId.name;
@@ -343,6 +386,12 @@
           closeEditModal();
           await loadTodayLogs();
           await loadPRLogs();
+          
+          const dateFilter = document.getElementById('date-filter');
+          if (dateFilter.value) {
+            const logs = await fetchLogsByDate(dateFilter.value);
+            renderHistoryLogs(logs);
+          }
         }
       });
     }
@@ -372,7 +421,7 @@
 
     function setupDateFilter() {
       const dateFilter = document.getElementById('date-filter');
-      dateFilter.value = new Date().toISOString().split('T')[0];
+      dateFilter.value = formatDate(new Date(), 'ISO');
       
       dateFilter.addEventListener('change', async (e) => {
         const logs = await fetchLogsByDate(e.target.value);
@@ -390,7 +439,7 @@
       
       container.innerHTML = '';
       logs.forEach(log => {
-        const logCard = createLogCard(log, true); // 🆕 改為 true，啟用編輯功能
+        const logCard = createLogCard(log, true);
         container.appendChild(logCard);
       });
     }
@@ -402,6 +451,12 @@
       if (result) {
         await loadTodayLogs();
         await loadPRLogs();
+        
+        const dateFilter = document.getElementById('date-filter');
+        if (dateFilter.value) {
+          const logs = await fetchLogsByDate(dateFilter.value);
+          renderHistoryLogs(logs);
+        }
       }
     }
   </script>

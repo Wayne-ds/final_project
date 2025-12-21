@@ -8,8 +8,6 @@
 </head>
 
 <body>
-
-  <!-- 導航列 -->
   <nav class="navbar">
     <div class="container">
       <a href="index.html" class="navbar-brand">💪 FitMotion</a>
@@ -20,14 +18,15 @@
         <li><a href="pages/training-log.html" class="nav-link">訓練記錄</a></li>
         <li><a href="pages/statistics.html" class="nav-link">統計分析</a></li>
       </ul>
+      <div id="auth-buttons" style="margin-left: auto; display: flex; gap: 0.5rem;">
+        <a href="pages/login.html" class="btn btn-outline" style="padding: 0.5rem 1rem; font-size: 0.9rem;">登入</a>
+        <a href="pages/register.html" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.9rem;">註冊</a>
+      </div>
     </div>
   </nav>
 
-  <!-- 主要內容 -->
   <main class="main-content">
     <div class="container">
-
-      <!-- 歡迎區塊 -->
       <section class="text-center mb-4">
         <h1>歡迎來到 FitMotion 🏋️</h1>
         <p style="font-size: 1.2rem; color: #666;">
@@ -35,7 +34,6 @@
         </p>
       </section>
 
-      <!-- 今日訓練 -->
       <section class="card mb-4">
         <div class="card-header">📅 今日訓練</div>
         <div class="card-body" id="today-workout">
@@ -43,101 +41,75 @@
         </div>
       </section>
 
-      <!-- 快速開始 -->
       <section>
         <h2 class="mb-3">🚀 快速開始</h2>
-
         <div class="grid grid-3">
-
-          <!-- 動作資料庫 -->
           <div class="card">
             <div style="font-size: 3rem; text-align: center; margin-bottom: 1rem;">📚</div>
             <h3 class="text-center">動作資料庫</h3>
             <p style="text-align: center; color: #666; margin-bottom: 1rem;">
               瀏覽 12+ 個健身動作，包含影片教學與詳細說明
             </p>
-            <a href="pages/exercise-library.html"
-               class="btn btn-primary"
-               style="width: 100%;">
+            <a href="pages/exercise-library.html" class="btn btn-primary" style="width: 100%;">
               開始瀏覽
             </a>
           </div>
 
-          <!-- 訓練計畫 -->
           <div class="card">
             <div style="font-size: 3rem; text-align: center; margin-bottom: 1rem;">📋</div>
             <h3 class="text-center">訓練計畫</h3>
             <p style="text-align: center; color: #666; margin-bottom: 1rem;">
               用拖放方式輕鬆編排你的每週訓練計畫
             </p>
-            <a href="pages/workout-plan.html"
-               class="btn btn-primary"
-               style="width: 100%;">
+            <a href="pages/workout-plan.html" class="btn btn-primary" style="width: 100%;">
               查看計畫
             </a>
           </div>
 
-          <!-- 訓練記錄 -->
           <div class="card">
             <div style="font-size: 3rem; text-align: center; margin-bottom: 1rem;">📊</div>
             <h3 class="text-center">訓練記錄</h3>
             <p style="text-align: center; color: #666; margin-bottom: 1rem;">
               記錄每次訓練，追蹤你的進步軌跡
             </p>
-            <a href="pages/training-log.html"
-               class="btn btn-primary"
-               style="width: 100%;">
+            <a href="pages/training-log.html" class="btn btn-primary" style="width: 100%;">
               開始記錄
             </a>
           </div>
-
         </div>
       </section>
 
-      <!-- 統計概覽 -->
       <section class="mt-4">
         <h2 class="mb-3">📈 本週統計</h2>
-
         <div class="grid grid-4">
           <div class="card text-center">
-            <div id="total-exercises"
-                 style="font-size: 2rem; color: var(--primary-color);">
-              0
-            </div>
+            <div id="total-exercises" style="font-size: 2rem; color: var(--primary-color);">0</div>
             <div style="color: #666;">總動作數</div>
           </div>
-
           <div class="card text-center">
-            <div id="total-workouts"
-                 style="font-size: 2rem; color: var(--secondary-color);">
-              0
-            </div>
+            <div id="total-workouts" style="font-size: 2rem; color: var(--secondary-color);">0</div>
             <div style="color: #666;">本週訓練</div>
           </div>
-
           <div class="card text-center">
-            <div id="total-logs"
-                 style="font-size: 2rem; color: var(--accent-color);">
-              0
-            </div>
+            <div id="total-logs" style="font-size: 2rem; color: var(--accent-color);">0</div>
             <div style="color: #666;">總記錄數</div>
           </div>
-
           <div class="card text-center">
             <div style="font-size: 2rem; color: var(--success-color);">🔥</div>
             <div style="color: #666;">持續訓練中</div>
           </div>
         </div>
       </section>
-
     </div>
   </main>
 
-  <!-- JavaScript -->
   <script src="js/api.js"></script>
-
+  <script src="js/auth-api.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", async () => {
+      // 🆕 初始化認證狀態
+      await initAuthState();
+      
       await loadTodayWorkout();
       await loadStatistics();
     });
@@ -145,24 +117,19 @@
     async function loadTodayWorkout() {
       try {
         const plan = await fetchWeeklyPlan();
-
-        const days = [
-          "sunday",
-          "monday",
-          "tuesday",
-          "wednesday",
-          "thursday",
-          "friday",
-          "saturday"
-        ];
+        if (!plan) {
+          document.getElementById("today-workout").innerHTML = 
+            '<p class="text-center" style="color:#999;">請先<a href="pages/login.html" style="color: var(--primary-color);">登入</a>查看今日訓練</p>';
+          return;
+        }
+        
+        const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
         const todayDay = days[new Date().getDay()];
-
         const todayWorkout = plan.weeklyPlan[todayDay];
         const container = document.getElementById("today-workout");
 
         if (!todayWorkout || todayWorkout.length === 0) {
-          container.innerHTML =
-            '<p class="text-center" style="color:#999;">今天沒有安排訓練，休息一下吧！ 😊</p>';
+          container.innerHTML = '<p class="text-center" style="color:#999;">今天沒有安排訓練，休息一下吧！ 😊</p>';
           return;
         }
 
@@ -171,22 +138,29 @@
 
         todayWorkout.forEach(item => {
           if (!item.exerciseId) return;
-
+          
           const card = document.createElement("div");
           card.className = "card";
-          card.innerHTML = `
-            <h4>${item.exerciseId.name || "未知動作"}</h4>
-            <p style="color:#666;">
-              <span class="tag tag-primary">${item.exerciseId.targetMuscle || ""}</span>
-              <span class="tag tag-secondary">${item.exerciseId.difficulty || ""}</span>
-            </p>
-            <p style="margin-top:0.5rem;">
-              <strong>${item.sets || 3} 組 × ${item.reps || 10} 次</strong>
-            </p>
+          
+          const nameH4 = document.createElement("h4");
+          nameH4.textContent = item.exerciseId.name || "未知動作";
+          
+          const tagsP = document.createElement("p");
+          tagsP.style.color = "#666";
+          tagsP.innerHTML = `
+            <span class="tag tag-primary">${escapeHtml(item.exerciseId.targetMuscle || "")}</span>
+            <span class="tag tag-secondary">${escapeHtml(item.exerciseId.difficulty || "")}</span>
           `;
+          
+          const setsP = document.createElement("p");
+          setsP.style.marginTop = "0.5rem";
+          setsP.innerHTML = `<strong>${item.sets || 3} 組 × ${item.reps || 10} 次</strong>`;
+          
+          card.appendChild(nameH4);
+          card.appendChild(tagsP);
+          card.appendChild(setsP);
           grid.appendChild(card);
         });
-
       } catch (err) {
         console.error("載入今日訓練失敗:", err);
         document.getElementById("today-workout").innerHTML =
@@ -204,24 +178,13 @@
 
         const oneWeekAgo = new Date();
         oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-
-        const thisWeekLogs = logs.filter(
-          log => new Date(log.date) >= oneWeekAgo
-        );
-
-        const uniqueDays = new Set(
-          thisWeekLogs.map(log =>
-            new Date(log.date).toDateString()
-          )
-        );
-
+        const thisWeekLogs = logs.filter(log => new Date(log.date) >= oneWeekAgo);
+        const uniqueDays = new Set(thisWeekLogs.map(log => new Date(log.date).toDateString()));
         document.getElementById("total-workouts").textContent = uniqueDays.size;
-
       } catch (err) {
         console.error("載入統計失敗:", err);
       }
     }
   </script>
-
 </body>
 </html>

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>個人資料 - FitMotion</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <a href="../index.html" class="navbar-brand">💪 FitMotion</a>
+      <ul class="navbar-nav">
+        <li><a href="../index.html" class="nav-link">首頁</a></li>
+        <li><a href="exercise-library.html" class="nav-link">動作資料庫</a></li>
+        <li><a href="workout-plan.html" class="nav-link">訓練計畫</a></li>
+        <li><a href="training-log.html" class="nav-link">訓練記錄</a></li>
+        <li><a href="statistics.html" class="nav-link">統計分析</a></li>
+        <li><a href="profile.html" class="nav-link active">個人資料</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="container" style="max-width: 800px;">
+      <h1 class="mb-3">👤 個人資料</h1>
+
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="card-header">基本資訊</div>
+          <div class="card-body" id="user-info">
+            <p class="text-center" style="color: #999;">載入中...</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">帳號統計</div>
+          <div class="card-body">
+            <div style="margin-bottom: 1rem;">
+              <strong>註冊日期</strong>
+              <div id="created-at" style="color: #666;">-</div>
+            </div>
+            <div>
+              <strong>最後登入</strong>
+              <div id="last-login" style="color: #666;">-</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mt-3">
+        <div class="card-header">編輯資料</div>
+        <div class="card-body">
+          <form id="profile-form">
+            <div class="form-group">
+              <label class="form-label">用戶名</label>
+              <input type="text" id="username" class="form-input" disabled>
+              <small style="color: #666;">用戶名無法修改</small>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">顯示名稱</label>
+              <input type="text" id="displayName" class="form-input" placeholder="在頁面上顯示的名稱">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">電子郵件</label>
+              <input type="email" id="email" class="form-input" placeholder="example@email.com">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">頭像網址</label>
+              <input type="url" id="avatar" class="form-input" placeholder="https://...">
+              <small style="color: #666;">可使用 Gravatar、Imgur 等圖床</small>
+            </div>
+
+            <div style="display: flex; gap: 1rem;">
+              <button type="submit" class="btn btn-primary" style="flex: 1;">💾 儲存變更</button>
+              <button type="button" class="btn btn-danger" onclick="logout()">🚪 登出</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/auth-api.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 🆕 檢查登入狀態
+      const isAuth = await requireAuth();
+      if (!isAuth) return;
+
+      // 🆕 更新導航列
+      updateNavbarUser();
+
+      // 載入用戶資料
+      await loadProfile();
+    });
+
+    async function loadProfile() {
+      const user = await fetchProfile();
+      
+      if (!user) return;
+
+      // 顯示基本資訊（使用 DOM 操作防 XSS）
+      const userInfoDiv = document.getElementById('user-info');
+      userInfoDiv.innerHTML = '';
+      
+      const centerDiv = document.createElement('div');
+      centerDiv.style.cssText = 'text-align: center; margin-bottom: 1.5rem;';
+      
+      const avatarImg = document.createElement('img');
+      avatarImg.src = user.avatar;
+      avatarImg.alt = 'Avatar';
+      avatarImg.style.cssText = 'width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-bottom: 1rem;';
+      
+      const nameH3 = document.createElement('h3');
+      nameH3.style.margin = '0';
+      nameH3.textContent = user.displayName || user.username;
+      
+      const usernameP = document.createElement('p');
+      usernameP.style.cssText = 'color: #666; margin: 0;';
+      usernameP.textContent = `@${user.username}`;
+      
+      centerDiv.appendChild(avatarImg);
+      centerDiv.appendChild(nameH3);
+      centerDiv.appendChild(usernameP);
+      
+      const emailDiv = document.createElement('div');
+      emailDiv.style.cssText = 'padding: 1rem; background: #f8f9fa; border-radius: var(--radius-md);';
+      
+      const emailStrong = document.createElement('strong');
+      emailStrong.textContent = '📧 Email: ';
+      
+      const emailText = document.createTextNode(user.email);
+      
+      emailDiv.appendChild(emailStrong);
+      emailDiv.appendChild(emailText);
+      
+      userInfoDiv.appendChild(centerDiv);
+      userInfoDiv.appendChild(emailDiv);
+
+      // 顯示統計
+      document.getElementById('created-at').textContent = formatDate(user.createdAt);
+      document.getElementById('last-login').textContent = formatDate(user.lastLoginAt, 'datetime');
+
+      // 填入表單
+      document.getElementById('username').value = user.username;
+      document.getElementById('displayName').value = user.displayName || '';
+      document.getElementById('email').value = user.email;
+      document.getElementById('avatar').value = user.avatar;
+    }
+
+    document.getElementById('profile-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const displayName = document.getElementById('displayName').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const avatar = document.getElementById('avatar').value.trim();
+      
+      const result = await updateProfile(displayName, email, avatar);
+      
+      if (result) {
+        await loadProfile();
+        updateNavbarUser();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -5,11 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>統計分析 - FitMotion</title>
   <link rel="stylesheet" href="../css/style.css">
-  <!-- 載入 Google Charts -->
   <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 </head>
 <body>
-  <!-- 導航列 -->
   <nav class="navbar">
     <div class="container">
       <a href="../index.html" class="navbar-brand">💪 FitMotion</a>
@@ -23,12 +21,10 @@
     </div>
   </nav>
 
-  <!-- 主要內容 -->
   <main class="main-content">
     <div class="container">
       <h1 class="mb-3">📊 統計分析</h1>
 
-      <!-- 統計卡片 -->
       <div class="grid grid-4 mb-4">
         <div class="card text-center">
           <div style="font-size: 2.5rem; color: var(--primary-color);" id="total-logs">0</div>
@@ -48,9 +44,7 @@
         </div>
       </div>
 
-      <!-- 圖表區域 -->
       <div class="grid grid-2 mb-4">
-        <!-- 部位訓練分布圓餅圖 -->
         <div class="card">
           <div class="card-header">🎯 各部位訓練分布</div>
           <div class="card-body">
@@ -60,7 +54,6 @@
           </div>
         </div>
 
-        <!-- 訓練頻率長條圖 -->
         <div class="card">
           <div class="card-header">📅 每月訓練頻率</div>
           <div class="card-body">
@@ -71,7 +64,6 @@
         </div>
       </div>
 
-      <!-- 重量進步曲線 -->
       <div class="card mb-4">
         <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
           <span>📈 重量進步曲線</span>
@@ -86,30 +78,32 @@
         </div>
       </div>
 
-      <!-- 詳細記錄表格 -->
       <div class="card">
         <div class="card-header">📋 最近 10 筆訓練記錄</div>
         <div class="card-body">
-          <div id="recent-logs-table" style="overflow-x: auto;">
-            <!-- 動態生成表格 -->
-          </div>
+          <div id="recent-logs-table" style="overflow-x: auto;"></div>
         </div>
       </div>
     </div>
   </main>
 
-  <!-- 引入 JavaScript -->
   <script src="../js/api.js"></script>
+  <script src="../js/auth-api.js"></script>
   <script>
     let allLogs = [];
     let allExercises = [];
 
-    // 載入 Google Charts
     google.charts.load('current', {'packages':['corechart']});
     google.charts.setOnLoadCallback(initPage);
 
-    // 初始化頁面
     async function initPage() {
+      // 🆕 檢查登入狀態
+      const isAuth = await requireAuth();
+      if (!isAuth) return;
+      
+      // 🆕 更新導航列
+      updateNavbarUser();
+      
       await loadData();
       updateStatistics();
       drawMuscleChart();
@@ -118,18 +112,14 @@
       renderRecentLogsTable();
     }
 
-    // 載入資料
     async function loadData() {
       allLogs = await fetchAllLogs();
       allExercises = await fetchExercises();
     }
 
-    // 更新統計數字
     function updateStatistics() {
-      // 總訓練次數
       document.getElementById('total-logs').textContent = allLogs.length;
 
-      // 訓練動作數（去重）
       const uniqueExercises = new Set(
         allLogs
           .filter(log => log.exerciseId)
@@ -137,7 +127,6 @@
       );
       document.getElementById('total-exercises').textContent = uniqueExercises.size;
 
-      // 本月訓練天數
       const now = new Date();
       const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const thisMonthLogs = allLogs.filter(log => new Date(log.date) >= firstDayOfMonth);
@@ -146,12 +135,10 @@
       );
       document.getElementById('this-month').textContent = uniqueDaysThisMonth.size;
 
-      // 連續訓練天數
       const streak = calculateStreak();
       document.getElementById('streak-days').textContent = streak;
     }
 
-    // 計算連續訓練天數
     function calculateStreak() {
       if (allLogs.length === 0) return 0;
 
@@ -160,7 +147,6 @@
       )].sort((a, b) => new Date(b) - new Date(a));
 
       let streak = 0;
-      const today = new Date().toDateString();
       
       for (let i = 0; i < uniqueDates.length; i++) {
         const checkDate = new Date();
@@ -176,7 +162,6 @@
       return streak;
     }
 
-    // 繪製部位訓練分布圓餅圖
     function drawMuscleChart() {
       if (allLogs.length === 0) {
         document.getElementById('muscle-chart').innerHTML = 
@@ -184,7 +169,6 @@
         return;
       }
 
-      // 統計各部位訓練次數
       const muscleCount = {};
       allLogs.forEach(log => {
         if (log.exerciseId && log.exerciseId.targetMuscle) {
@@ -193,7 +177,6 @@
         }
       });
 
-      // 準備圖表資料
       const chartData = [['部位', '訓練次數']];
       Object.entries(muscleCount).forEach(([muscle, count]) => {
         chartData.push([muscle, count]);
@@ -217,7 +200,6 @@
       chart.draw(data, options);
     }
 
-    // 繪製訓練頻率長條圖
     function drawFrequencyChart() {
       if (allLogs.length === 0) {
         document.getElementById('frequency-chart').innerHTML = 
@@ -225,7 +207,6 @@
         return;
       }
 
-      // 統計每月訓練天數（最近6個月）
       const monthlyDays = {};
       const uniqueDatesByMonth = {};
 
@@ -244,7 +225,6 @@
         monthlyDays[month] = dates.size;
       });
 
-      // 取最近6個月
       const sortedMonths = Object.keys(monthlyDays).sort().slice(-6);
       
       const chartData = [['月份', '訓練天數', { role: 'style' }]];
@@ -277,11 +257,9 @@
       chart.draw(data, options);
     }
 
-    // 設定動作選擇器
     function setupExerciseSelector() {
       const selector = document.getElementById('exercise-selector');
       
-      // 取得有訓練記錄的動作
       const exercisesWithLogs = new Set(
         allLogs
           .filter(log => log.exerciseId)
@@ -307,7 +285,6 @@
       });
     }
 
-    // 繪製重量進步曲線
     function drawProgressChart(exerciseId) {
       const exerciseLogs = allLogs
         .filter(log => log.exerciseId && log.exerciseId._id === exerciseId)
@@ -326,7 +303,7 @@
 
       exerciseLogs.forEach(log => {
         const date = new Date(log.date);
-        const tooltip = `${date.toLocaleDateString('zh-TW')}\n重量: ${log.weight}kg\n${log.sets}組 × ${log.reps}次`;
+        const tooltip = `${formatDate(date)}\n重量: ${log.weight}kg\n${log.sets}組 × ${log.reps}次`;
         data.addRow([date, log.weight, tooltip]);
       });
 
@@ -366,7 +343,6 @@
       chart.draw(data, options);
     }
 
-    // 渲染最近記錄表格
     function renderRecentLogsTable() {
       const container = document.getElementById('recent-logs-table');
       
@@ -377,38 +353,62 @@
 
       const recentLogs = allLogs.slice(0, 10);
 
-      let tableHTML = `
-        <table style="width: 100%; border-collapse: collapse;">
-          <thead>
-            <tr style="background: #f8f9fa; text-align: left;">
-              <th style="padding: 0.75rem; border-bottom: 2px solid #dee2e6;">日期</th>
-              <th style="padding: 0.75rem; border-bottom: 2px solid #dee2e6;">動作</th>
-              <th style="padding: 0.75rem; border-bottom: 2px solid #dee2e6;">部位</th>
-              <th style="padding: 0.75rem; border-bottom: 2px solid #dee2e6;">重量</th>
-              <th style="padding: 0.75rem; border-bottom: 2px solid #dee2e6;">組數×次數</th>
-            </tr>
-          </thead>
-          <tbody>
+      const table = document.createElement('table');
+      table.style.cssText = 'width: 100%; border-collapse: collapse;';
+      
+      const thead = document.createElement('thead');
+      thead.innerHTML = `
+        <tr style="background: #f8f9fa; text-align: left;">
+          <th style="padding: 0.75rem; border-bottom: 2px solid #dee2e6;">日期</th>
+          <th style="padding: 0.75rem; border-bottom: 2px solid #dee2e6;">動作</th>
+          <th style="padding: 0.75rem; border-bottom: 2px solid #dee2e6;">部位</th>
+          <th style="padding: 0.75rem; border-bottom: 2px solid #dee2e6;">重量</th>
+          <th style="padding: 0.75rem; border-bottom: 2px solid #dee2e6;">組數×次數</th>
+        </tr>
       `;
-
+      table.appendChild(thead);
+      
+      const tbody = document.createElement('tbody');
       recentLogs.forEach(log => {
-        const date = new Date(log.date).toLocaleDateString('zh-TW');
+        const date = formatDate(log.date);
         const exercise = log.exerciseId ? log.exerciseId.name : '未知';
         const muscle = log.exerciseId ? log.exerciseId.targetMuscle : '-';
         
-        tableHTML += `
-          <tr style="border-bottom: 1px solid #dee2e6;">
-            <td style="padding: 0.75rem;">${date}</td>
-            <td style="padding: 0.75rem; font-weight: bold;">${exercise}</td>
-            <td style="padding: 0.75rem;"><span class="tag tag-primary">${muscle}</span></td>
-            <td style="padding: 0.75rem;">${log.weight} kg</td>
-            <td style="padding: 0.75rem;">${log.sets} × ${log.reps}</td>
-          </tr>
-        `;
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid #dee2e6';
+        
+        const tdDate = document.createElement('td');
+        tdDate.style.padding = '0.75rem';
+        tdDate.textContent = date;
+        
+        const tdExercise = document.createElement('td');
+        tdExercise.style.cssText = 'padding: 0.75rem; font-weight: bold;';
+        tdExercise.textContent = exercise;
+        
+        const tdMuscle = document.createElement('td');
+        tdMuscle.style.padding = '0.75rem';
+        tdMuscle.innerHTML = `<span class="tag tag-primary">${escapeHtml(muscle)}</span>`;
+        
+        const tdWeight = document.createElement('td');
+        tdWeight.style.padding = '0.75rem';
+        tdWeight.textContent = `${log.weight} kg`;
+        
+        const tdSetsReps = document.createElement('td');
+        tdSetsReps.style.padding = '0.75rem';
+        tdSetsReps.textContent = `${log.sets} × ${log.reps}`;
+        
+        tr.appendChild(tdDate);
+        tr.appendChild(tdExercise);
+        tr.appendChild(tdMuscle);
+        tr.appendChild(tdWeight);
+        tr.appendChild(tdSetsReps);
+        
+        tbody.appendChild(tr);
       });
-
-      tableHTML += '</tbody></table>';
-      container.innerHTML = tableHTML;
+      table.appendChild(tbody);
+      
+      container.innerHTML = '';
+      container.appendChild(table);
     }
   </script>
 </body>

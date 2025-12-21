@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登入 - FitMotion</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <a href="../index.html" class="navbar-brand">💪 FitMotion</a>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="container" style="max-width: 500px;">
+      <div class="card">
+        <h1 class="text-center mb-3">🔐 登入</h1>
+        
+        <form id="login-form">
+          <div class="form-group">
+            <label class="form-label">用戶名或電子郵件 *</label>
+            <input type="text" id="username" class="form-input" placeholder="輸入用戶名或郵件" required autofocus>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">密碼 *</label>
+            <input type="password" id="password" class="form-input" placeholder="輸入密碼" required>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; margin-bottom: 1rem;">
+            登入
+          </button>
+
+          <p class="text-center" style="color: #666;">
+            還沒有帳號？
+            <a href="register.html" style="color: var(--primary-color);">立即註冊</a>
+          </p>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/auth-api.js"></script>
+  <script>
+    // 🆕 初始化認證狀態
+    document.addEventListener('DOMContentLoaded', async () => {
+      await initAuthState();
+    });
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      
+      const result = await login(username, password);
+      
+      if (result) {
+        setTimeout(() => {
+          window.location.href = '../index.html';
+        }, 1000);
+      }
+    });
+  </script>
+</body>
+</html>
