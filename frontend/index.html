@@ -17,6 +17,8 @@
         <li><a href="pages/workout-plan.html" class="nav-link">訓練計畫</a></li>
         <li><a href="pages/training-log.html" class="nav-link">訓練記錄</a></li>
         <li><a href="pages/statistics.html" class="nav-link">統計分析</a></li>
+        <!-- 🆕 專案報告連結（導航列） -->
+        <li><a href="https://docs.google.com/presentation/d/16Ej0R6bwrLB0MJcFFdYWcWsNVGUvm2Hp/edit?slide=id.p2#slide=id.p2" class="nav-link" target="_blank">📄 專案報告</a></li>
       </ul>
       <div id="auth-buttons" style="margin-left: auto; display: flex; gap: 0.5rem;">
         <a href="pages/login.html" class="btn btn-outline" style="padding: 0.5rem 1rem; font-size: 0.9rem;">登入</a>
@@ -27,6 +29,23 @@
 
   <main class="main-content">
     <div class="container">
+      <!-- 🆕 專案報告卡片（首頁頂部） -->
+      <div class="card mb-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <div style="flex: 1; min-width: 250px;">
+            <h2 style="margin: 0 0 0.5rem 0; color: white;">📄 專案報告</h2>
+            <p style="margin: 0; opacity: 0.9;">查看完整的專案開發簡報與功能說明</p>
+          </div>
+          <a href="https://docs.google.com/presentation/d/16Ej0R6bwrLB0MJcFFdYWcWsNVGUvm2Hp/edit?slide=id.p2#slide=id.p2" 
+             target="_blank" 
+             class="btn" 
+             style="background: white; color: #667eea; font-weight: bold; display: flex; align-items: center; gap: 0.5rem;">
+            查看簡報
+            <span style="font-size: 1.2rem;">🔗</span>
+          </a>
+        </div>
+      </div>
+
       <section class="text-center mb-4">
         <h1>歡迎來到 FitMotion 🏋️</h1>
         <p style="font-size: 1.2rem; color: #666;">
@@ -107,7 +126,6 @@
   <script src="js/auth-api.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", async () => {
-      // 🆕 初始化認證狀態
       await initAuthState();
       
       await loadTodayWorkout();
