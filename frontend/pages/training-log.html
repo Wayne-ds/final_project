@@ -264,7 +264,7 @@
       card.className = 'log-card';
       card.style.cssText = 'padding: 1rem; margin-bottom: 0.5rem; background: #f8f9fa; border-radius: var(--radius-md); border-left: 4px solid var(--primary-color);';
       
-      const exerciseName = log.exerciseId ? log.exerciseId.name : '未知動作';
+      const exerciseName = log.exerciseId?.name || '已刪除動作';
       const time = formatDate(log.date, 'time');
       const prBadge = log.isPR ? '<span class="tag tag-warning">🏆 PR</span>' : '';
       const editedBadge = log.isEdited ? '<small style="color: #999;">(已編輯)</small>' : '';

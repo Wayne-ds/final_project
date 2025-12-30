@@ -161,7 +161,7 @@
           card.className = "card";
           
           const nameH4 = document.createElement("h4");
-          nameH4.textContent = item.exerciseId.name || "未知動作";
+          nameH4.textContent = item.exerciseId?.name || "未知動作";
           
           const tagsP = document.createElement("p");
           tagsP.style.color = "#666";

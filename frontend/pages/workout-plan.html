@@ -208,7 +208,7 @@
       
       const nameH4 = document.createElement('h4');
       nameH4.style.margin = '0';
-      nameH4.textContent = exercise.name || '未知動作';
+      nameH4.textContent = exercise?.name || '未知動作';
       
       headerDiv.appendChild(indexSpan);
       headerDiv.appendChild(nameH4);
@@ -265,7 +265,7 @@
     async function removeExercise(exerciseId, day) {
       const confirmRemove = confirm(`確定要從${dayNames[day]}移除這個動作嗎？`);
       
-      if (!confirmRemove) return;
+      if (!confirm(`確定要從 ${dayNames[day]} 移除這個動作嗎？`)) return;
       
       const result = await removeExerciseFromPlan(exerciseId, day);
       

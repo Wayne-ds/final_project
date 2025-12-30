@@ -345,6 +345,7 @@ function updateNavbarUser() {
     // 安全處理用戶名（防 XSS）
     const displayName = document.createElement('span');
     displayName.style.color = 'white';
+    displayName.style.whiteSpace = 'nowrap';
     displayName.textContent = `👋 ${user.displayName || user.username}`;
     
     const logoutBtn = document.createElement('button');
