@@ -3,6 +3,9 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const app = express();
+const path = require('path');
+// 讓 Render 伺服器開放 images 資料夾
+app.use('/images', express.static(path.join(__dirname, 'images')));
 
 // Middleware
 const allowedOrigins = [
